@@ -1,0 +1,177 @@
+#include "defines.h"
+#include "sprites.h"
+#include "buttons.h"
+#include "simpleOutside.pal.h"
+#include "simpleOutside.map.h"
+#include "simpleOutside.raw.h"
+#include "firstSprite.h"
+
+Sprite sprites[128];
+
+void UpdateSpriteMemory(void)
+{
+	DMAFastCopy((void*)sprites, (void*)SpriteMem, 512, DMA_16NOW);
+}
+
+void CopyColumnToBackground(int, int, int, int, const unsigned short*, unsigned short*);
+void CopyRowToBackground(int, int, int, int, const unsigned short*, unsigned short*);
+
+#define MAP_WIDTH 512
+#define MAP_HEIGHT 512
+#define MAP_COLUMNS 64
+#define MAP_ROWS 64
+const unsigned char* mapTiles = simpleOutside_Tiles;
+const unsigned short* map = simpleOutside_Map;
+const unsigned short* mapPalette = simpleOutside_Palette;
+
+int main(void)
+{
+	//SetMode(0 |OBJ_ENABLE|OBJ_MAP_1D | BG0_ENABLE);
+	SetMod(0 | BG0_ENABLE);
+	
+	//int n;
+	//for(n = 0; n < 256; n++)
+		//SpritePal[n] = firstSpritePalette[n];
+	
+	//for(n = 0; n < firstSprite_WIDTH*firstSprite_HEIGHT/2; n++)
+		//SpriteData[n] = firstSpriteData[n];
+		
+	//attribute0: color mode, shape and y pos
+	//sprites[0].attribute0 = COLOR_256 | SQUARE | 20;
+	//attribute1: size and x pos
+	//sprites[0].attribute1 = SIZE_16 | 40;
+	//attribute2: Image location
+	//sprites[0].attribute2 = 0;
+	
+	//WaitVBlank();
+	//UpdateSpriteMemory();
+
+	//create a pointer to background 0 tilemap buffer
+	unsigned short* bg0map =(unsigned short*)ScreenBaseBlock(31);
+
+	//set up background 0
+	//We are using a 256x256 Map which is placed in ScreenBaseBlock 31
+	REG_BG0CNT = BG_COLOR256 | TEXTBG_SIZE_256x256 | (31 << SCREEN_SHIFT);
+	
+	//copy the palette into the background palette memory
+	DMAFastCopy((void*)mapPalette, (void*)BGPaletteMem, 256, DMA_16NOW);
+
+	//copy the tile images into the tile memory
+	DMAFastCopy((void*)mapTiles, (void*)CharBaseBlock(0), 40960, DMA_32NOW);
+	//4992 = #Tiles * 64
+	
+	int i, j;
+	//unsigned short screen[1024];
+	for (i = 0; i < 32; i++)
+		for (j = 0; j < 32; j++)
+			bg0map[i * 32 + j] = map[i * MAP_COLUMNS + j];
+			
+	//DMAFastCopy((void*)screen, (void*)bg0map, 512, DMA_32NOW);
+	
+	int mapLeft = 0, mapRight = 255, screenLeft = 0, screenRight = 239, nextColumn = 0, prevColumn = 0;
+	int mapTop = 0, mapBottom = 255, screenTop = 0, screenBottom = 159, nextRow = 0, prevRow = 0;
+	
+	int x = 0,y = 0, n;
+   while(1)
+   {
+        CheckButtons();
+		WaitVBlank();
+		if(Pressed(BUTTON_LEFT))
+		{
+			if (screenLeft > 0)
+			{
+				x--;
+				if (mapLeft > 0)
+				{
+					mapLeft--; mapRight--;
+				}
+				
+				prevColumn = screenLeft / 8;
+				screenLeft--; screenRight--;
+				nextColumn = screenLeft / 8;
+				if (nextColumn < prevColumn)
+					CopyColumnToBackground(screenLeft, nextColumn, mapTop, mapBottom, map, bg0map);
+			}
+		}
+		if(Pressed(BUTTON_RIGHT))
+		{
+			if (screenRight < MAP_WIDTH - 1)
+			{
+				x++;
+				if (mapRight < MAP_WIDTH - 1)
+				{
+					mapRight++; mapLeft++;
+				}
+				
+				prevColumn = screenRight / 8;
+				screenLeft++; screenRight++;
+				nextColumn = screenRight / 8;
+				if (nextColumn > prevColumn)
+				    CopyColumnToBackground(screenRight, nextColumn, mapTop, mapBottom, map, bg0map);
+			}
+		}
+		if(Pressed(BUTTON_UP)) 
+		{
+			if (screenTop > 0)
+			{
+				y--;
+				if (mapTop > 0)
+				{
+					mapTop--;	mapBottom--;
+				}
+				
+				prevRow = screenTop / 8;
+				screenTop--; screenBottom--;
+				nextRow = screenTop / 8;
+				if (nextRow < prevRow)
+					CopyRowToBackground(screenTop, nextRow, mapLeft, mapRight, map, bg0map);
+			}
+		}
+		if(Pressed(BUTTON_DOWN))
+		{
+			if (screenBottom < MAP_HEIGHT - 1)
+			{
+				y++;
+				if (mapBottom < MAP_HEIGHT - 1)
+				{
+					mapTop++; mapBottom++;
+				}
+				
+				prevRow = screenBottom / 8;
+				screenTop++; screenBottom++;
+				nextRow = screenBottom / 8;
+				if (nextRow > prevRow)
+					CopyRowToBackground(screenBottom, nextRow, mapLeft, mapRight, map, bg0map);
+			}
+		}
+		REG_BG0VOFS = y;
+		REG_BG0HOFS = x;
+
+		for(n = 0; n < 40000; n++);
+   }
+
+   return 0;
+}
+
+void CopyColumnToBackground(int column, int copyToColumn, int topRow, int bottomRow, const unsigned short* source, unsigned short* dest)
+{
+	int row;
+	column /= 8;
+	copyToColumn %= 32;
+	topRow /= 8;
+	bottomRow /= 8;
+	for (row = topRow; row <= bottomRow; row++)
+		dest[(row % 32) * 32 + copyToColumn] = source[row * MAP_COLUMNS + column];
+}
+
+void CopyRowToBackground(int row, int copyToRow, int leftColumn, int rightColumn, const unsigned short* source, unsigned short* dest)
+{
+	int column;
+	row /= 8;
+	copyToRow %= 32;
+	leftColumn /= 8;
+	rightColumn /= 8;
+	for (column = leftColumn; column <= rightColumn; column++)
+		dest[copyToRow * 32 + (column % 32)] = source[row * MAP_COLUMNS + column];
+}
+
