@@ -6,10 +6,10 @@
 #include "simpleOutside.raw.h"
 #include "simpleOutsideHitMap.map.h"
 #include "simpleOutsideHitMap.raw.h"
-#include "forward.h"
-#include "jumping.h"
-#include "sideways.h"
-#include "walking1.h"
+#include "philFacingRight3.h"
+#include "phil.h"
+#include "philFacingRight.h"
+#include "philFacingRight2.h"
 #include "laser.h"
 
 typedef enum {
@@ -41,10 +41,10 @@ const unsigned char* hitMapTiles = simpleOutsideHitMap_Tiles;
 
 u16* bg0map, *bg1map;
 #define FORWARD_SPRITE_LOC 0
-#define SIDEWAYS_SPRITE_LOC 16 * 32 / (8 * 8) * 2
-#define WALKING_SPRITE_LOC 16 * 32 / (8 * 8) * 2 * 2
-#define JUMPING_SPRITE_LOC 16 * 32 / (8 * 8) * 2 * 3
-#define LASER_SPRITE_LOC 16 * 32 / (8 * 8) * 2 * 4
+#define SIDEWAYS_SPRITE_LOC 32 * 32 / (8 * 8) * 2
+#define WALKING1_SPRITE_LOC 32 * 32 / (8 * 8) * 2 * 2
+#define WALKING2_SPRITE_LOC 32 * 32 / (8 * 8) * 2 * 3
+#define LASER_SPRITE_LOC 32 * 32 / (8 * 8) * 2 * 4
 SpriteHandler sprites[128];
 int numberOfSprites;
 
@@ -53,6 +53,7 @@ bool isJumping = false;
 bool isMoving = false;
 int jumpDuration;
 int walkingCounter = 0;
+int characterSpriteIndex;
 
 int mapLeft = 0, mapRight = 255, screenLeft = 0, screenRight = 239, nextColumn = 0, prevColumn = 0;
 int mapTop = 0, mapBottom = 255, screenTop = 0, screenBottom = 159, nextRow = 0, prevRow = 0;
@@ -66,22 +67,22 @@ void Initialize()
 	
 	int n, startLocation = 0;
 	for(n = 0; n < 256; n++)
-		SpritePal[n] = forwardPalette[n];
+		SpritePal[n] = philPalette[n];
 	
-	for(n = 0; n < 16*32/2; n++)
-		SpriteData[n] = forwardData[n];
+	for(n = 0; n < 32*32/2; n++)
+		SpriteData[n] = philData[n];
 		
 	startLocation = n;
-	for (; n < 16 * 32 / 2 + startLocation; n++)
-		SpriteData[n] = sidewaysData[n - startLocation];
+	for (; n < 32 * 32 / 2 + startLocation; n++)
+		SpriteData[n] = philFacingRightData[n - startLocation];
 		
 	startLocation = n;
-	for (; n < 16 * 32 / 2 + startLocation; n++)
-		SpriteData[n] = walking1Data[n - startLocation];
+	for (; n < 32 * 32 / 2 + startLocation; n++)
+		SpriteData[n] = philFacingRight2Data[n - startLocation];
 		
 	startLocation = n;
-	for (; n < 16 * 32 / 2 + startLocation; n++)
-		SpriteData[n] = jumpingData[n - startLocation];
+	for (; n < 32 * 32 / 2 + startLocation; n++)
+		SpriteData[n] = philFacingRight3Data[n - startLocation];
 
 	startLocation = n;
 	for(; n < 8 * 8 / 2 + startLocation; n++)
@@ -99,16 +100,19 @@ void Initialize()
 	characterBBox.y = 0;
 	characterBBox.xsize = 16;
 	characterBBox.ysize = 32;
-	sprites[0].y = 0;
-	sprites[0].x = 0;
-	sprites[0].size = SIZE_32;
-	sprites[0].shape = TALL;
-	sprites[0].location = FORWARD_SPRITE_LOC;
-	sprites[0].boundingBox = characterBBox;
-	sprites[0].noGravity = false;
-	sprites[0].isProjectile = false;
-	sprites[0].speed = 1;
-	sprites[0].isRemoved = false;
+	characterSpriteIndex = 0;
+	sprites[characterSpriteIndex].y = 0;
+	sprites[characterSpriteIndex].x = 0;
+	sprites[characterSpriteIndex].mapX = 0;
+	sprites[characterSpriteIndex].mapY = 0;
+	sprites[characterSpriteIndex].size = SIZE_32;
+	sprites[characterSpriteIndex].shape = SQUARE;
+	sprites[characterSpriteIndex].location = FORWARD_SPRITE_LOC;
+	sprites[characterSpriteIndex].boundingBox = characterBBox;
+	sprites[characterSpriteIndex].noGravity = false;
+	sprites[characterSpriteIndex].isProjectile = false;
+	sprites[characterSpriteIndex].speed = 1;
+	sprites[characterSpriteIndex].isRemoved = false;
 	numberOfSprites++;
 	
 	
@@ -134,7 +138,6 @@ void Initialize()
 	DMAFastCopy((void*)hitMapTiles, (void*)CharBaseBlock(2), 240, DMA_32NOW);
 	
 	int i, j;
-	//unsigned short screen[1024];
 	for (i = 0; i < 32; i++)
 	{
 		for (j = 0; j < 32; j++)
@@ -151,7 +154,7 @@ void Update()
 	Direction dir;
 	if (keyHit(BUTTON_UP) && !isJumping)
 	{
-		sprites[0].location = JUMPING_SPRITE_LOC;
+		//sprites[characterSpriteIndex].location = JUMPING_SPRITE_LOC;
 		isJumping = true;
 		jumpDuration = 0;
 		walkingCounter = 0;
@@ -159,7 +162,7 @@ void Update()
 	if (isJumping && jumpDuration < JUMP_HEIGHT)
 	{
 		dir = UP;
-		sprites[0] = Move(dir, sprites[0]);
+		sprites[characterSpriteIndex] = Move(dir, sprites[characterSpriteIndex]);
 		jumpDuration++;
 	}
 	else
@@ -170,16 +173,20 @@ void Update()
 	{
 		if (!isJumping)
 		{
-			if (walkingCounter % 20 == 10)
-				sprites[0].location = WALKING_SPRITE_LOC;
-			else if (walkingCounter % 20 == 0)
-				sprites[0].location = SIDEWAYS_SPRITE_LOC;
+			if (walkingCounter % 40 == 10)
+				sprites[characterSpriteIndex].location = WALKING1_SPRITE_LOC;
+			else if (walkingCounter % 40 == 20)
+				sprites[characterSpriteIndex].location = SIDEWAYS_SPRITE_LOC;
+			else if (walkingCounter % 40 == 30)
+				sprites[characterSpriteIndex].location = WALKING2_SPRITE_LOC;
+			else if (walkingCounter % 40 == 0)
+				sprites[characterSpriteIndex].location = SIDEWAYS_SPRITE_LOC;
 		}
-		sprites[0].hFlip = false;
+		sprites[characterSpriteIndex].hFlip = false;
 		dir = RIGHT;
-		if (sprites[0].x < 120 || mapRight == MAP_WIDTH - 1)
+		if (sprites[characterSpriteIndex].x < 120 || screenRight >= MAP_WIDTH - 1)
 		{	
-			sprites[0] = Move(dir, sprites[0]);
+			sprites[characterSpriteIndex] = Move(dir, sprites[characterSpriteIndex]);
 		}
 		else
 		{
@@ -191,16 +198,20 @@ void Update()
 	{
 		if (!isJumping)
 		{
-			if (walkingCounter % 20 == 10)
-				sprites[0].location = WALKING_SPRITE_LOC;
-			else if (walkingCounter % 20 == 0)
-				sprites[0].location = SIDEWAYS_SPRITE_LOC;
+			if (walkingCounter % 40 == 10)
+				sprites[characterSpriteIndex].location = WALKING1_SPRITE_LOC;
+			else if (walkingCounter % 40 == 20)
+				sprites[characterSpriteIndex].location = SIDEWAYS_SPRITE_LOC;
+			else if (walkingCounter % 40 == 30)
+				sprites[characterSpriteIndex].location = WALKING2_SPRITE_LOC;
+			else if (walkingCounter % 40 == 0)
+				sprites[characterSpriteIndex].location = SIDEWAYS_SPRITE_LOC;
 		}	
-		sprites[0].hFlip = true;
+		sprites[characterSpriteIndex].hFlip = true;
 		dir = LEFT;
-		if (sprites[0].x > 120 || mapLeft == 0)
+		if (sprites[characterSpriteIndex].x > 120 || screenLeft == 0)
 		{
-			sprites[0] = Move(dir, sprites[0]);
+			sprites[characterSpriteIndex] = Move(dir, sprites[characterSpriteIndex]);
 		}
 		else
 		{
@@ -210,7 +221,7 @@ void Update()
 	
 	if (keyHit(BUTTON_A))
 	{
-		Shoot(sprites[0].x, sprites[0].y);
+		Shoot(sprites[characterSpriteIndex].x, sprites[characterSpriteIndex].y);
 	}
 	
 	int i;
@@ -224,7 +235,7 @@ void Update()
 	}
 	
 	if (!keyHeld(BUTTON_LEFT) && !keyHeld(BUTTON_RIGHT) && !isJumping)
-		sprites[0].location = FORWARD_SPRITE_LOC;
+		sprites[characterSpriteIndex].location = FORWARD_SPRITE_LOC;
 	
 	WaitVBlank();
 	UpdateSpriteMemory(sprites, 128);
@@ -255,35 +266,26 @@ void Gravity()
 	{
 		if (!sprites[i].noGravity)
 		{
-			int curBottom	= sprites[i].y + sprites[i].boundingBox.ysize;
-			int curX = sprites[i].x + sprites[i].boundingBox.xsize / 2;
+			int curBottom	= sprites[i].mapY + sprites[i].boundingBox.ysize;
+			int curX = sprites[i].mapX + sprites[i].boundingBox.xsize / 2;
 			if (GetNextTile(curX, curBottom) == 2)
 			{
 				if (isJumping)
 				{	
-					sprites[0].location = FORWARD_SPRITE_LOC;
+					sprites[characterSpriteIndex].location = FORWARD_SPRITE_LOC;
 					isJumping = false;
 				}
 				break;
 			}
-			else if (GetNextTile(curX, curBottom) == 3)
-			{
-				sprites[i].location = FORWARD_SPRITE_LOC;
-				sprites[i].x = 0;
-				sprites[i].y = 0;
-				isJumping = false;
-				break;
-			}
 				
 			sprites[i].y++;
+			sprites[i].mapY++;
 		}
 	}
 }
 
 int GetNextTile(int x, int y)
 {
-	x += mapLeft;
-	y += mapTop;
 	return bg1map[(y / 8) * 32 + (x / 8)];
 }
 
@@ -316,11 +318,12 @@ SpriteHandler Move(Direction direction, SpriteHandler sprite)
 	{
 		case LEFT:
 		{
-			x = sprite.x;
-			y = sprite.y + sprite.boundingBox.ysize / 2;
+			x = sprite.mapX;
+			y = sprite.mapY + sprite.boundingBox.ysize / 2;
 			if (x > 0 && GetNextTile(x - 1, y) != 2)
 			{
 				sprite.x -= sprite.speed;
+				sprite.mapX -= sprite.speed;
 				walkingCounter++;
 			}
 			else
@@ -336,11 +339,12 @@ SpriteHandler Move(Direction direction, SpriteHandler sprite)
 		}
 		case RIGHT:
 		{
-			x = sprite.x + sprite.boundingBox.xsize;
-			y = sprite.y + sprite.boundingBox.ysize / 2;
-			if (x < 239 && GetNextTile(x + 1, y) != 2)
+			x = sprite.mapX + sprite.boundingBox.xsize;
+			y = sprite.mapY + sprite.boundingBox.ysize / 2;
+			if (x < MAP_WIDTH && GetNextTile(x + 1, y) != 2)
 			{
 				sprite.x += sprite.speed;
+				sprite.mapX += sprite.speed;
 				walkingCounter++;
 			}
 			else
@@ -356,10 +360,13 @@ SpriteHandler Move(Direction direction, SpriteHandler sprite)
 		}
 		case UP:
 		{
-			x = sprite.x;
-			y = sprite.y;
+			x = sprite.mapX;
+			y = sprite.mapY;
 			if (y > 0 && GetNextTile(x, y - 1) != 2)
+			{
 				sprite.y--;
+				sprite.mapY--;
+			}
 			break;
 		}
 		default:
@@ -382,9 +389,13 @@ void MoveMapLeft()
 		
 		prevColumn = screenLeft / 8;
 		screenLeft--; screenRight--;
+		sprites[characterSpriteIndex].mapX -= sprites[characterSpriteIndex].speed;
 		nextColumn = screenLeft / 8;
 		if (nextColumn < prevColumn)
+		{
 			CopyColumnToBackground(screenLeft, nextColumn, mapTop, mapBottom, map, bg0map, MAP_COLUMNS);
+			CopyColumnToBackground(screenLeft, nextColumn, mapTop, mapBottom, hitMap, bg1map, MAP_COLUMNS);
+		}
 	}
 }
 
@@ -400,9 +411,13 @@ void MoveMapRight()
 		
 		prevColumn = screenRight / 8;
 		screenLeft++; screenRight++;
+		sprites[characterSpriteIndex].mapX += sprites[characterSpriteIndex].speed;
 		nextColumn = screenRight / 8;
 		if (nextColumn > prevColumn)
+		{
 			CopyColumnToBackground(screenRight, nextColumn, mapTop, mapBottom, map, bg0map, MAP_COLUMNS);
+			CopyColumnToBackground(screenRight, nextColumn, mapTop, mapBottom, hitMap, bg1map, MAP_COLUMNS);
+		}
 	}
 }
 

@@ -53,6 +53,7 @@ typedef struct Sprite
 typedef struct SpriteHandler
 {
 	int x, y;
+	int mapX, mapY;
 	int size, shape;
 	int dirx, diry;
 	int alive;
