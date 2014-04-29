@@ -1,4 +1,5 @@
 #include "defines.h"
+#include "LUT_sin_cos.h"
 #include "sprites.h"
 #include "buttons.h"
 #include "simpleOutside.pal.h"
@@ -10,24 +11,24 @@
 #include "phil.h"
 #include "philFacingRight.h"
 #include "philFacingRight2.h"
+#include "philJumping.h"
 #include "laser.h"
-
-typedef enum {
-	LEFT,
-	RIGHT,
-	UP,
-	DOWN
-} Direction;
 
 void Gravity();
 void Jump();
 SpriteHandler Move(Direction, SpriteHandler);
+SpriteHandler RemoveSprite(SpriteHandler);
 int GetNextTile(int, int);
-void Shoot(int, int);
+void Shoot(int, int, int, int, Direction);
 void MoveMapRight();
 void MoveMapLeft();
 void CopyRowToBackground(int, int, int, int, const unsigned short*, unsigned short*, int);
 void CopyColumnToBackground(int, int, int, int, const unsigned short*, unsigned short*, int);
+int CanMove(int, int);
+int CanMoveRight(SpriteHandler);
+int CanMoveLeft(SpriteHandler);
+int CanMoveUp(SpriteHandler);
+int CanMoveDown(SpriteHandler);
 
 #define MAP_WIDTH 512
 #define MAP_HEIGHT 512
@@ -44,7 +45,8 @@ u16* bg0map, *bg1map;
 #define SIDEWAYS_SPRITE_LOC 32 * 32 / (8 * 8) * 2
 #define WALKING1_SPRITE_LOC 32 * 32 / (8 * 8) * 2 * 2
 #define WALKING2_SPRITE_LOC 32 * 32 / (8 * 8) * 2 * 3
-#define LASER_SPRITE_LOC 32 * 32 / (8 * 8) * 2 * 4
+#define JUMPING_SPRITE_LOC 32 * 32 / (8 * 8) * 2 * 4
+#define LASER_SPRITE_LOC 32 * 32 / (8 * 8) * 2 * 5
 SpriteHandler sprites[128];
 int numberOfSprites;
 
@@ -83,6 +85,10 @@ void Initialize()
 	startLocation = n;
 	for (; n < 32 * 32 / 2 + startLocation; n++)
 		SpriteData[n] = philFacingRight3Data[n - startLocation];
+		
+	startLocation = n;
+	for (; n < 32 * 32 / 2 + startLocation; n++)
+		SpriteData[n] = philJumpingData[n - startLocation];
 
 	startLocation = n;
 	for(; n < 8 * 8 / 2 + startLocation; n++)
@@ -95,11 +101,11 @@ void Initialize()
 		sprites[n].isRemoved = true;
 	}
 	
-	BoundingBox characterBBox;
-	characterBBox.x = 0;
-	characterBBox.y = 0;
-	characterBBox.xsize = 16;
-	characterBBox.ysize = 32;
+	BoundingBox characterWalkingBBox;
+	characterWalkingBBox.x = 2;
+	characterWalkingBBox.y = 0;
+	characterWalkingBBox.xsize = 16;
+	characterWalkingBBox.ysize = 32;
 	characterSpriteIndex = 0;
 	sprites[characterSpriteIndex].y = 0;
 	sprites[characterSpriteIndex].x = 0;
@@ -107,8 +113,8 @@ void Initialize()
 	sprites[characterSpriteIndex].mapY = 0;
 	sprites[characterSpriteIndex].size = SIZE_32;
 	sprites[characterSpriteIndex].shape = SQUARE;
-	sprites[characterSpriteIndex].location = FORWARD_SPRITE_LOC;
-	sprites[characterSpriteIndex].boundingBox = characterBBox;
+	sprites[characterSpriteIndex].location = SIDEWAYS_SPRITE_LOC;
+	sprites[characterSpriteIndex].boundingBox = characterWalkingBBox;
 	sprites[characterSpriteIndex].noGravity = false;
 	sprites[characterSpriteIndex].isProjectile = false;
 	sprites[characterSpriteIndex].speed = 1;
@@ -152,9 +158,10 @@ void Update()
 {
 	keyPoll();
 	Direction dir;
+	int projectileMoveCounter = 0;
 	if (keyHit(BUTTON_UP) && !isJumping)
 	{
-		//sprites[characterSpriteIndex].location = JUMPING_SPRITE_LOC;
+		sprites[characterSpriteIndex].location = JUMPING_SPRITE_LOC;
 		isJumping = true;
 		jumpDuration = 0;
 		walkingCounter = 0;
@@ -183,14 +190,25 @@ void Update()
 				sprites[characterSpriteIndex].location = SIDEWAYS_SPRITE_LOC;
 		}
 		sprites[characterSpriteIndex].hFlip = false;
-		dir = RIGHT;
+		sprites[characterSpriteIndex].dir = RIGHT;
+		int prevX;
 		if (sprites[characterSpriteIndex].x < 120 || screenRight >= MAP_WIDTH - 1)
 		{	
-			sprites[characterSpriteIndex] = Move(dir, sprites[characterSpriteIndex]);
+			prevX = sprites[characterSpriteIndex].x;
+			sprites[characterSpriteIndex] = Move(sprites[characterSpriteIndex].dir, sprites[characterSpriteIndex]);
+			if (prevX != sprites[characterSpriteIndex].x)
+				walkingCounter++;
 		}
 		else
 		{
+			prevX = sprites[characterSpriteIndex].mapX;
+			sprites[characterSpriteIndex].dir = RIGHT;
 			MoveMapRight();
+			if (prevX != sprites[characterSpriteIndex].mapX)
+			{
+				walkingCounter++;
+				projectileMoveCounter = prevX - sprites[characterSpriteIndex].mapX;
+			}
 		}
 	}
 		
@@ -208,34 +226,46 @@ void Update()
 				sprites[characterSpriteIndex].location = SIDEWAYS_SPRITE_LOC;
 		}	
 		sprites[characterSpriteIndex].hFlip = true;
-		dir = LEFT;
+		sprites[characterSpriteIndex].dir = LEFT;
+		int prevX;
 		if (sprites[characterSpriteIndex].x > 120 || screenLeft == 0)
 		{
-			sprites[characterSpriteIndex] = Move(dir, sprites[characterSpriteIndex]);
+			prevX = sprites[characterSpriteIndex].x;
+			sprites[characterSpriteIndex] = Move(sprites[characterSpriteIndex].dir, sprites[characterSpriteIndex]);
+			if (prevX != sprites[characterSpriteIndex].x)
+				walkingCounter++;
 		}
 		else
 		{
+			prevX = sprites[characterSpriteIndex].mapX;
+			sprites[characterSpriteIndex].dir = LEFT;
 			MoveMapLeft();
+			if (prevX != sprites[characterSpriteIndex].mapX)
+			{
+				walkingCounter++;
+				projectileMoveCounter = prevX - sprites[characterSpriteIndex].mapX;
+			}
 		}
 	}
 	
 	if (keyHit(BUTTON_A))
 	{
-		Shoot(sprites[characterSpriteIndex].x, sprites[characterSpriteIndex].y);
+		Shoot(sprites[characterSpriteIndex].x, sprites[characterSpriteIndex].y, sprites[characterSpriteIndex].mapX, sprites[characterSpriteIndex].mapY, sprites[characterSpriteIndex].dir);
 	}
 	
 	int i;
-	dir = RIGHT;
 	for (i = 0; i < 128; i++)
 	{
 		if (sprites[i].isProjectile && !sprites[i].isRemoved)
 		{
-			sprites[i] = Move(dir, sprites[i]);
+			sprites[i] = Move(sprites[i].dir, sprites[i]);
+			sprites[i].x += projectileMoveCounter;
+			sprites[i].mapX += projectileMoveCounter;
 		}		
 	}
 	
 	if (!keyHeld(BUTTON_LEFT) && !keyHeld(BUTTON_RIGHT) && !isJumping)
-		sprites[characterSpriteIndex].location = FORWARD_SPRITE_LOC;
+		sprites[characterSpriteIndex].location = SIDEWAYS_SPRITE_LOC;
 	
 	WaitVBlank();
 	UpdateSpriteMemory(sprites, 128);
@@ -266,13 +296,13 @@ void Gravity()
 	{
 		if (!sprites[i].noGravity)
 		{
-			int curBottom	= sprites[i].mapY + sprites[i].boundingBox.ysize;
-			int curX = sprites[i].mapX + sprites[i].boundingBox.xsize / 2;
-			if (GetNextTile(curX, curBottom) == 2)
+			//int curBottom	= sprites[i].mapY + sprites[i].boundingBox.ysize;
+			//int curX = sprites[i].mapX + sprites[i].boundingBox.xsize / 2;
+			if (!CanMoveDown(sprites[i]))
 			{
 				if (isJumping)
 				{	
-					sprites[characterSpriteIndex].location = FORWARD_SPRITE_LOC;
+					sprites[characterSpriteIndex].location = SIDEWAYS_SPRITE_LOC;
 					isJumping = false;
 				}
 				break;
@@ -286,10 +316,12 @@ void Gravity()
 
 int GetNextTile(int x, int y)
 {
+	y %= 256;
+	x %= 256;
 	return bg1map[(y / 8) * 32 + (x / 8)];
 }
 
-void Shoot(int startX, int startY)
+void Shoot(int startX, int startY, int mapX, int mapY, Direction dir)
 {
 	int location = GetNextFreePosition(sprites, 128);
 	BoundingBox laserBBox;
@@ -299,6 +331,8 @@ void Shoot(int startX, int startY)
 	laserBBox.ysize = 8;
 	sprites[location].y = startY;
 	sprites[location].x = startX;
+	sprites[location].mapX = mapX;
+	sprites[location].mapY = mapY;
 	sprites[location].size = SIZE_8;
 	sprites[location].shape = SQUARE;
 	sprites[location].location = LASER_SPRITE_LOC;
@@ -307,62 +341,54 @@ void Shoot(int startX, int startY)
 	sprites[location].isProjectile = true;
 	sprites[location].speed = 2;
 	sprites[location].isRemoved = false;
+	sprites[location].dir = dir;
 
 	numberOfSprites++;
 }
 
 SpriteHandler Move(Direction direction, SpriteHandler sprite)
 {
-	int x, y;
 	switch(direction)
 	{
 		case LEFT:
 		{
-			x = sprite.mapX;
-			y = sprite.mapY + sprite.boundingBox.ysize / 2;
-			if (x > 0 && GetNextTile(x - 1, y) != 2)
+			if (sprite.mapX > 0 && CanMoveLeft(sprite))
 			{
 				sprite.x -= sprite.speed;
 				sprite.mapX -= sprite.speed;
-				walkingCounter++;
+				if (sprite.isProjectile && sprite.x == 0)
+				{
+					sprite = RemoveSprite(sprite);
+				}
 			}
 			else
 			{
 				if (sprite.isProjectile)
 				{
-					sprite.x = 240;
-					sprite.y = 160;
-					sprite.isRemoved = true;
+					sprite = RemoveSprite(sprite);
 				}
 			}
 			break;
 		}
 		case RIGHT:
 		{
-			x = sprite.mapX + sprite.boundingBox.xsize;
-			y = sprite.mapY + sprite.boundingBox.ysize / 2;
-			if (x < MAP_WIDTH && GetNextTile(x + 1, y) != 2)
+			if (sprite.mapX < MAP_WIDTH - 1 && CanMoveRight(sprite))
 			{
 				sprite.x += sprite.speed;
 				sprite.mapX += sprite.speed;
-				walkingCounter++;
 			}
 			else
 			{
 				if (sprite.isProjectile)
 				{
-					sprite.x = 240;
-					sprite.y = 160;
-					sprite.isRemoved = true;
+					sprite = RemoveSprite(sprite);
 				}
 			}
 			break;
 		}
 		case UP:
 		{
-			x = sprite.mapX;
-			y = sprite.mapY;
-			if (y > 0 && GetNextTile(x, y - 1) != 2)
+			if (sprite.mapY > 0 && CanMoveUp(sprite))
 			{
 				sprite.y--;
 				sprite.mapY--;
@@ -376,10 +402,11 @@ SpriteHandler Move(Direction direction, SpriteHandler sprite)
 	return sprite;
 }
 
-
 void MoveMapLeft()
 {
-	if (screenLeft > 0)
+	//int x = sprites[characterSpriteIndex].mapX;
+	//int y = sprites[characterSpriteIndex].mapY;
+	if (screenLeft > 0 && CanMoveLeft(sprites[characterSpriteIndex]))
 	{
 		regX--;
 		if (mapLeft > 0)
@@ -401,7 +428,9 @@ void MoveMapLeft()
 
 void MoveMapRight()
 {
-	if (screenRight < MAP_WIDTH - 1)
+	//int x = sprites[characterSpriteIndex].mapX;
+	//int y = sprites[characterSpriteIndex].mapY;
+	if (screenRight < MAP_WIDTH - 1 && CanMoveRight(sprites[characterSpriteIndex]))
 	{
 		regX++;
 		if (mapRight < MAP_WIDTH - 1)
@@ -512,6 +541,119 @@ void MoveMap(Direction direction)
 	{
 		CopyRowToBackground(screenBottom, nextRow, mapLeft, mapRight, map, bg0map, MAP_COLUMNS);
 	}
+}
+
+int CanMove(int x, int y)
+{
+	return GetNextTile(x,y) != 2;
+}
+
+int CanMoveRight(SpriteHandler sprite)
+{
+	int y = sprite.mapY;
+	int x = sprite.mapX + sprite.boundingBox.xsize + sprite.boundingBox.x;
+	if (!CanMove(x + 1, y)) 
+	{
+		return 0;
+	}
+	
+	int halfYSize = sprite.boundingBox.ysize / 2;
+	y += halfYSize;
+	if (!CanMove(x + 1, y))
+	{
+		return 0;
+	}
+	
+	y += halfYSize - 1;
+	if (!CanMove(x + 1,y))
+	{
+		return 0;
+	}
+	
+	return 1;
+}
+
+int CanMoveLeft(SpriteHandler sprite)
+{
+	int y = sprite.mapY;
+	int x = sprite.mapX + sprite.boundingBox.x;
+	if (!CanMove(x - 1, y))
+	{
+		return 0;
+	}
+	int halfYSize = sprite.boundingBox.ysize / 2;
+	y += halfYSize;
+	if (!CanMove(x - 1, y))
+	{
+		return 0;
+	}
+	
+	y += halfYSize - 1;
+	if (!CanMove(x - 1,y))
+	{
+		return 0;
+	}
+	
+	return 1;
+}
+
+int CanMoveUp(SpriteHandler sprite)
+{
+	int y = sprite.mapY;
+	int x = sprite.mapX + sprite.boundingBox.x;
+	if (!CanMove(x, y)) 
+	{
+		return 0;
+	}
+	
+	int halfXSize = sprite.boundingBox.xsize / 2;
+	x += halfXSize;
+	if (!CanMove(x, y))
+	{
+		return 0;
+	}
+	
+	x += halfXSize;
+	if (!CanMove(x,y))
+	{
+		return 0;
+	}
+	
+	return 1;
+}
+
+int CanMoveDown(SpriteHandler sprite)
+{
+	int y = sprite.mapY + sprite.boundingBox.ysize;
+	int x = sprite.mapX + sprite.boundingBox.x;
+	if (!CanMove(x, y)) 
+	{
+		return 0;
+	}
+	
+	int halfXSize = sprite.boundingBox.xsize / 2;
+	x += halfXSize;
+	if (!CanMove(x, y))
+	{
+		return 0;
+	}
+	
+	x += halfXSize;
+	if (!CanMove(x,y))
+	{
+		return 0;
+	}
+	
+	return 1;
+}
+
+SpriteHandler RemoveSprite(SpriteHandler sprite)
+{
+	sprite.x = 240;
+	sprite.y = 160;
+	sprite.isRemoved = true;
+	
+	return sprite;
 }
 
 void CopyColumnToBackground(int column, int copyToColumn, int topRow, int bottomRow, const unsigned short* source, unsigned short* dest, int sourceColumns)

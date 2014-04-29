@@ -1,5 +1,3 @@
-#define u16 unsigned short
-
 #define REG_DISPCNT *(unsigned long*) 0x4000000
 
 #define MODE_3 0x3

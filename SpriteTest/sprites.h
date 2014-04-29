@@ -1,3 +1,9 @@
+typedef signed short    s16;
+typedef unsigned short  u16;
+typedef unsigned int    u32;
+typedef signed int      s32;
+
+
 //OAM
 #define SpriteMem ((unsigned short*)0x7000000)
 //Sprite Image data
@@ -35,6 +41,15 @@
 #define PRIORITY(n)		((n) << 10)
 #define PALETTE(n)		((n) << 12)
 
+#define ALIGN4 __attribute__((aligned(4)))
+
+typedef enum direction {
+	LEFT,
+	RIGHT,
+	UP,
+	DOWN
+} Direction;
+
 typedef struct boundingBox {
 	int x;
 	int y;
@@ -53,9 +68,14 @@ typedef struct Sprite
 typedef struct SpriteHandler
 {
 	int x, y;
-	int mapX, mapY;
 	int size, shape;
-	int dirx, diry;
+	int fixedPointX, fixedPointY;
+	signed short DV_x, DV_y;
+	int aff;
+	int affIndex;
+	int mapFixedPointX, mapFixedPointY;
+	int mapX, mapY;
+	int hits;
 	int alive;
 	int hFlip;
 	int vFlip;
@@ -64,15 +84,31 @@ typedef struct SpriteHandler
 	int isProjectile;
 	int speed;
 	int isRemoved;
+	int explosionCounter;
+	int centerX, centerY;
+	int radius2;
+	int angle;
+	int oscillate;
+	int seen;
+	Direction dir;
 	BoundingBox boundingBox;
 }SpriteHandler;
 
-//attribute0: color mode, shape and y pos
-//sprites[0].attribute0 = COLOR_256 | TALL | 96;
-//attribute1: size and x pos
-//sprites[0].attribute1 = SIZE_32 | 40;
-//attribute2: Image location
-//sprites[0].attribute2 = 0;
+typedef struct OBJ_AFFINE
+{
+    u16 fill0[3];
+    s16 pa;
+    u16 fill1[3];
+    s16 pb;
+    u16 fill2[3];
+    s16 pc;
+    u16 fill3[3];
+    s16 pd;
+} ALIGN4 OBJ_AFFINE;
+
+//raidus = 14
+
+
 void UpdateSpriteMemory(SpriteHandler* sprites, int count)
 {	
 	Sprite tempSprites[count];
@@ -93,13 +129,71 @@ void UpdateSpriteMemory(SpriteHandler* sprites, int count)
 	DMAFastCopy((void*)tempSprites, (void*)SpriteMem, 512, DMA_16NOW);
 }
 
+void UpdateSpriteMemorySpace(SpriteHandler* spriteHandlers, Sprite *sprites, OBJ_AFFINE *obj_aff_buffer)
+{
+        // update sprites with changed data
+        int i;
+        for(i = 0; i < 128; i++)
+        {
+            sprites[i].attribute0 = COLOR_256 | spriteHandlers[i].shape | (spriteHandlers[i].y & 0x00FF);
+            //sprites[i].attribute0 = (sprites[i].attribute0 &~ 0x00FF)
+            sprites[i].attribute1 = spriteHandlers[i].size | (spriteHandlers[i].x & 0x01FF);
+           // sprites[i].attribute1 = (sprites[i].attribute1 &~ 0x00FF) | (spriteHandlers[i].x & 0x01FF);
+            if(spriteHandlers[i].aff == 1)
+            {
+                sprites[i].attribute0 |= ROTATION_FLAG;
+                sprites[i].attribute1 |= ROTDATA(spriteHandlers[i].affIndex);
+            }
+            sprites[i].attribute2 = spriteHandlers[i].location;
+        }
+        // copy sprite data into hardware memory
+		DMAFastCopy((void*)sprites, (void*)SpriteMem, 512, DMA_16NOW);
+		
+		//Copy in affine matrices
+        int n;
+		i = 3;
+		for(n = 0; n < 32; n++)
+		{
+		  SpriteMem[i] = (obj_aff_buffer[n]).pa;
+		  i+=4;
+		  SpriteMem[i] = (obj_aff_buffer[n]).pb;
+		  i+=4;
+		  SpriteMem[i] = (obj_aff_buffer[n]).pc;
+		  i+=4;
+		  SpriteMem[i] = (obj_aff_buffer[n]).pd;
+		  i+=4;
+		}		
+}
+
+
+
 int GetNextFreePosition(SpriteHandler* sprites, int count)
 {
 	int i;
-	for (i = 0; i < count; i++)
+	for (i = 1; i < count; i++)
 	{
 		if (sprites[i].isRemoved)
 			return i;
 	}
+	return -1;
+}
+
+inline s32 Sin_val(u32 angle)
+{
+    return sin_lut[(angle>>7)&0x1FF];
+}
+
+inline s32 Cos_val(u32 angle)
+{
+    return sin_lut[((angle>>7)+128)&0x1FF];
+}
+
+
+void obj_aff_rotate(OBJ_AFFINE *oaff, unsigned short angle)
+{
+    int ss= Sin_val(angle), cc= Cos_val(angle);
+
+    oaff->pa= cc>>4;    oaff->pb=-ss>>4;
+    oaff->pc= ss>>4;    oaff->pd= cc>>4;
 }
 
