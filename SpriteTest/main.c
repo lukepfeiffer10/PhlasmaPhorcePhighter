@@ -62,6 +62,10 @@ int mapTop = 0, mapBottom = 255, screenTop = 0, screenBottom = 159, nextRow = 0,
 
 int regX = 0, regY = 0;
 
+BoundingBox characterWalkingRightBBox;
+BoundingBox characterStandingRightBBox;
+BoundingBox characterWalkingLeftBBox;
+BoundingBox characterStandingLeftBBox;
 
 void Initialize()
 {
@@ -101,11 +105,27 @@ void Initialize()
 		sprites[n].isRemoved = true;
 	}
 	
-	BoundingBox characterWalkingBBox;
-	characterWalkingBBox.x = 2;
-	characterWalkingBBox.y = 0;
-	characterWalkingBBox.xsize = 16;
-	characterWalkingBBox.ysize = 32;
+	characterWalkingRightBBox.x = 2;
+	characterWalkingRightBBox.y = 0;
+	characterWalkingRightBBox.xsize = 16;
+	characterWalkingRightBBox.ysize = 32;
+		
+	characterStandingRightBBox.x = 7;
+	characterStandingRightBBox.y = 0;
+	characterStandingRightBBox.xsize = 8;
+	characterStandingRightBBox.ysize = 32;
+	
+	characterWalkingLeftBBox.x = 18;
+	characterWalkingLeftBBox.y = 0;
+	characterWalkingLeftBBox.xsize = 16;
+	characterWalkingLeftBBox.ysize = 32;
+		
+	characterStandingLeftBBox.x = 14;
+	characterStandingLeftBBox.y = 0;
+	characterStandingLeftBBox.xsize = 8;
+	characterStandingLeftBBox.ysize = 32;
+	
+
 	characterSpriteIndex = 0;
 	sprites[characterSpriteIndex].y = 0;
 	sprites[characterSpriteIndex].x = 0;
@@ -114,11 +134,12 @@ void Initialize()
 	sprites[characterSpriteIndex].size = SIZE_32;
 	sprites[characterSpriteIndex].shape = SQUARE;
 	sprites[characterSpriteIndex].location = SIDEWAYS_SPRITE_LOC;
-	sprites[characterSpriteIndex].boundingBox = characterWalkingBBox;
+	sprites[characterSpriteIndex].boundingBox = characterStandingRightBBox;
 	sprites[characterSpriteIndex].noGravity = false;
 	sprites[characterSpriteIndex].isProjectile = false;
 	sprites[characterSpriteIndex].speed = 1;
 	sprites[characterSpriteIndex].isRemoved = false;
+	sprites[characterSpriteIndex].dir = RIGHT;
 	numberOfSprites++;
 	
 	
@@ -158,6 +179,7 @@ void Update()
 {
 	keyPoll();
 	Direction dir;
+	Direction mapMoved;
 	int projectileMoveCounter = 0;
 	if (keyHit(BUTTON_UP) && !isJumping)
 	{
@@ -181,13 +203,25 @@ void Update()
 		if (!isJumping)
 		{
 			if (walkingCounter % 40 == 10)
+			{
 				sprites[characterSpriteIndex].location = WALKING1_SPRITE_LOC;
+				sprites[characterSpriteIndex].boundingBox = characterWalkingRightBBox;
+			}
 			else if (walkingCounter % 40 == 20)
+			{
 				sprites[characterSpriteIndex].location = SIDEWAYS_SPRITE_LOC;
+				sprites[characterSpriteIndex].boundingBox = characterStandingRightBBox;
+			}
 			else if (walkingCounter % 40 == 30)
+			{
 				sprites[characterSpriteIndex].location = WALKING2_SPRITE_LOC;
+				sprites[characterSpriteIndex].boundingBox = characterWalkingRightBBox;
+			}
 			else if (walkingCounter % 40 == 0)
+			{
 				sprites[characterSpriteIndex].location = SIDEWAYS_SPRITE_LOC;
+				sprites[characterSpriteIndex].boundingBox = characterStandingRightBBox;
+			}
 		}
 		sprites[characterSpriteIndex].hFlip = false;
 		sprites[characterSpriteIndex].dir = RIGHT;
@@ -207,7 +241,8 @@ void Update()
 			if (prevX != sprites[characterSpriteIndex].mapX)
 			{
 				walkingCounter++;
-				projectileMoveCounter = prevX - sprites[characterSpriteIndex].mapX;
+				projectileMoveCounter = sprites[characterSpriteIndex].mapX - prevX;
+				mapMoved = RIGHT;
 			}
 		}
 	}
@@ -217,13 +252,25 @@ void Update()
 		if (!isJumping)
 		{
 			if (walkingCounter % 40 == 10)
+			{
 				sprites[characterSpriteIndex].location = WALKING1_SPRITE_LOC;
+				sprites[characterSpriteIndex].boundingBox = characterWalkingLeftBBox;
+			}
 			else if (walkingCounter % 40 == 20)
+			{
 				sprites[characterSpriteIndex].location = SIDEWAYS_SPRITE_LOC;
+				sprites[characterSpriteIndex].boundingBox = characterStandingLeftBBox;
+			}
 			else if (walkingCounter % 40 == 30)
+			{
 				sprites[characterSpriteIndex].location = WALKING2_SPRITE_LOC;
+				sprites[characterSpriteIndex].boundingBox = characterWalkingLeftBBox;
+			}
 			else if (walkingCounter % 40 == 0)
+			{
 				sprites[characterSpriteIndex].location = SIDEWAYS_SPRITE_LOC;
+				sprites[characterSpriteIndex].boundingBox = characterStandingLeftBBox;
+			}
 		}	
 		sprites[characterSpriteIndex].hFlip = true;
 		sprites[characterSpriteIndex].dir = LEFT;
@@ -244,13 +291,22 @@ void Update()
 			{
 				walkingCounter++;
 				projectileMoveCounter = prevX - sprites[characterSpriteIndex].mapX;
+				mapMoved = LEFT;
 			}
 		}
 	}
 	
 	if (keyHit(BUTTON_A))
 	{
-		Shoot(sprites[characterSpriteIndex].x, sprites[characterSpriteIndex].y, sprites[characterSpriteIndex].mapX, sprites[characterSpriteIndex].mapY, sprites[characterSpriteIndex].dir);
+		SpriteHandler character = sprites[characterSpriteIndex];
+		if (character.dir == RIGHT) 
+		{
+			Shoot(character.x + 20, character.y + 7, character.mapX + 20, character.mapY + 7, character.dir);
+		}
+		else if (character.dir == LEFT)
+		{
+			Shoot(character.x + 2, character.y + 7, character.mapX + 2, character.mapY + 7, character.dir);
+		}
 	}
 	
 	int i;
@@ -259,13 +315,43 @@ void Update()
 		if (sprites[i].isProjectile && !sprites[i].isRemoved)
 		{
 			sprites[i] = Move(sprites[i].dir, sprites[i]);
-			sprites[i].x += projectileMoveCounter;
-			sprites[i].mapX += projectileMoveCounter;
+			if (mapMoved == RIGHT) 
+			{
+				if (sprites[i].dir == RIGHT) 
+				{
+					sprites[i].x -= projectileMoveCounter;
+					sprites[i].mapX -= projectileMoveCounter;
+				}
+				else if (sprites[i].dir == LEFT)
+				{
+					sprites[i].x += projectileMoveCounter;
+					sprites[i].mapX += projectileMoveCounter;
+				}				
+			}
+			else if (mapMoved == LEFT)
+			{
+				if (sprites[i].dir == RIGHT)
+				{
+					sprites[i].x += projectileMoveCounter;
+					sprites[i].mapX += projectileMoveCounter;
+				}
+				else if (sprites[i].dir == LEFT)
+				{
+					sprites[i].x -= projectileMoveCounter;
+					sprites[i].mapX -= projectileMoveCounter;
+				}
+			}
 		}		
 	}
 	
 	if (!keyHeld(BUTTON_LEFT) && !keyHeld(BUTTON_RIGHT) && !isJumping)
+	{
 		sprites[characterSpriteIndex].location = SIDEWAYS_SPRITE_LOC;
+		if (sprites[characterSpriteIndex].dir == RIGHT)
+			sprites[characterSpriteIndex].boundingBox = characterStandingRightBBox;
+		else if (sprites[characterSpriteIndex].dir == LEFT)
+			sprites[characterSpriteIndex].boundingBox = characterStandingLeftBBox;
+	}
 	
 	WaitVBlank();
 	UpdateSpriteMemory(sprites, 128);
@@ -296,13 +382,15 @@ void Gravity()
 	{
 		if (!sprites[i].noGravity)
 		{
-			//int curBottom	= sprites[i].mapY + sprites[i].boundingBox.ysize;
-			//int curX = sprites[i].mapX + sprites[i].boundingBox.xsize / 2;
 			if (!CanMoveDown(sprites[i]))
 			{
 				if (isJumping)
 				{	
 					sprites[characterSpriteIndex].location = SIDEWAYS_SPRITE_LOC;
+					if (sprites[characterSpriteIndex].dir == RIGHT)
+						sprites[characterSpriteIndex].boundingBox = characterStandingRightBBox;
+					else if (sprites[characterSpriteIndex].dir == LEFT)
+						sprites[characterSpriteIndex].boundingBox = characterStandingLeftBBox;
 					isJumping = false;
 				}
 				break;
@@ -339,7 +427,7 @@ void Shoot(int startX, int startY, int mapX, int mapY, Direction dir)
 	sprites[location].boundingBox = laserBBox;
 	sprites[location].noGravity = true;
 	sprites[location].isProjectile = true;
-	sprites[location].speed = 2;
+	sprites[location].speed = 5;
 	sprites[location].isRemoved = false;
 	sprites[location].dir = dir;
 

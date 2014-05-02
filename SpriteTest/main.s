@@ -15529,18 +15529,17 @@ regY:
 	.type	Initialize, %function
 Initialize:
 	@ Function supports interworking.
-	@ args = 0, pretend = 0, frame = 16
+	@ args = 0, pretend = 0, frame = 0
 	@ frame_needed = 1, uses_anonymous_args = 0
 	mov	ip, sp
-	stmfd	sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr, pc}
 	mov	r2, #4416
-	sub	fp, ip, #4
-	sub	sp, sp, #16
 	mov	r3, #67108864
 	mov	r1, #83886080
 	ldr	r0, .L184
+	stmfd	sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr, pc}
 	add	r1, r1, #512
 	str	r2, [r3, #0]
+	sub	fp, ip, #4
 	mov	r2, #0	@  n
 .L118:
 	mov	r3, r2, asl #1	@  n
@@ -15632,58 +15631,79 @@ Initialize:
 	strh	r4, [r3, ip]	@ movhi 
 	add	r1, r1, #2
 	blt	.L148
-	ldr	r8, .L184+28
+	ldr	r9, .L184+28
 	mov	r0, #160
-	mov	r9, #240
+	mov	r8, #240
 	mov	sl, #1
 	mov	r1, #0	@  n
 	mov	r2, #127	@  n
 .L153:
-	add	r3, r1, r8	@  n
+	add	r3, r1, r9	@  n
 	subs	r2, r2, #1	@  n,  n
-	str	r9, [r1, r8]	@  <variable>.x
+	str	r8, [r1, r9]	@  <variable>.x
 	str	sl, [r3, #84]	@  <variable>.isRemoved
 	str	r0, [r3, #4]	@  <variable>.y
 	add	r1, r1, #136	@  n,  n
 	bpl	.L153
-	ldr	r6, .L184+32
+	ldr	ip, .L184+32
 	mov	r5, #0	@  i
-	mov	r7, #32
-	mov	r3, #2
-	mov	r2, #16
-	ldr	lr, [r6, #0]	@  numberOfSprites
-	str	r7, [fp, #-44]	@  characterWalkingBBox.ysize
-	str	r3, [fp, #-56]	@  characterWalkingBBox.x
-	str	r2, [fp, #-48]	@  characterWalkingBBox.xsize
-	str	r5, [fp, #-52]	@  i,  characterWalkingBBox.y
-	sub	ip, fp, #56
-	ldmia	ip, {r0, r1, r2, r3}
-	add	lr, lr, #1
-	mov	ip, #32768
-	str	lr, [r6, #0]	@  numberOfSprites
+	mov	lr, #32
+	mov	r3, #7
+	mov	r2, #8
+	str	lr, [ip, #12]	@  characterStandingRightBBox.ysize
+	stmia	ip, {r3, r5}	@ phole stm
+	str	r2, [ip, #8]	@  characterStandingRightBBox.xsize
 	ldr	r4, .L184+36
-	str	ip, [r8, #8]	@  <variable>.size
-	ldr	ip, .L184+40
-	str	r7, [r8, #68]	@  <variable>.location
+	ldmia	ip, {r0, r1, r2, r3}
+	mov	ip, #32768
+	str	ip, [r9, #8]	@  <variable>.size
+	ldr	r6, .L184+40
+	mov	ip, #2
+	str	lr, [r9, #68]	@  <variable>.location
+	str	ip, [r4, #0]	@  characterWalkingRightBBox.x
+	mov	ip, #18
+	str	ip, [r6, #0]	@  characterWalkingLeftBBox.x
+	ldr	r7, .L184+44
+	mov	ip, #16
+	str	ip, [r6, #8]	@  characterWalkingLeftBBox.xsize
+	mov	ip, #14
+	str	lr, [r4, #12]	@  characterWalkingRightBBox.ysize
+	str	lr, [r6, #12]	@  characterWalkingLeftBBox.ysize
+	str	ip, [r7, #0]	@  characterStandingLeftBBox.x
+	str	lr, [r7, #12]	@  characterStandingLeftBBox.ysize
+	ldr	ip, .L184+48
+	ldr	lr, .L184+52
+	str	r2, [r7, #8]	@  characterStandingLeftBBox.xsize
 	str	r5, [ip, #0]	@  i,  characterSpriteIndex
-	str	r5, [r8, #4]	@  i,  <variable>.y
-	str	r5, [r8, #0]	@  i,  <variable>.x
-	str	r5, [r8, #44]	@  i,  <variable>.mapX
-	str	r5, [r8, #48]	@  i,  <variable>.mapY
-	str	r5, [r8, #12]	@  i,  <variable>.shape
-	stmia	r4, {r0, r1, r2, r3}
-	str	sl, [r8, #80]	@  <variable>.speed
-	str	r5, [r8, #84]	@  i,  <variable>.isRemoved
-	str	r5, [r8, #72]	@  i,  <variable>.noGravity
-	str	r5, [r8, #76]	@  i,  <variable>.isProjectile
+	str	r5, [r9, #4]	@  i,  <variable>.y
+	str	r5, [r9, #0]	@  i,  <variable>.x
+	str	r5, [r9, #44]	@  i,  <variable>.mapX
+	str	r5, [r9, #48]	@  i,  <variable>.mapY
+	str	r5, [r9, #12]	@  i,  <variable>.shape
+	stmia	lr, {r0, r1, r2, r3}
+	mov	r2, #16
+	str	r2, [r4, #8]	@  characterWalkingRightBBox.xsize
+	str	r5, [r4, #4]	@  i,  characterWalkingRightBBox.y
+	ldr	r4, .L184+56
+	str	r5, [r6, #4]	@  i,  characterWalkingLeftBBox.y
+	str	r5, [r7, #4]	@  i,  characterStandingLeftBBox.y
+	str	r5, [r9, #72]	@  i,  <variable>.noGravity
+	str	r5, [r9, #76]	@  i,  <variable>.isProjectile
+	ldr	r3, [r4, #0]	@  numberOfSprites
+	add	r3, r3, #1
+	str	r3, [r4, #0]	@  numberOfSprites
+	str	sl, [r9, #116]	@  <variable>.dir
+	str	sl, [r9, #80]	@  <variable>.speed
+	str	r5, [r9, #84]	@  i,  <variable>.isRemoved
 	bl	WaitVBlank
-	sub	r0, r4, #120
+	ldr	ip, .L184+52
 	mov	r1, #128
+	sub	r0, ip, #120
 	bl	UpdateSpriteMemory
-	ldr	r3, .L184+44
+	ldr	r3, .L184+60
 	mov	ip, #100663296
-	ldr	r6, .L184+48
-	ldr	r7, .L184+52
+	ldr	r6, .L184+64
+	ldr	r7, .L184+68
 	mov	r4, ip
 	mov	lr, #8064	@ movhi
 	add	ip, ip, #63488
@@ -15699,22 +15719,22 @@ Initialize:
 	mov	r3, #-2147483648
 	str	r4, [r7, #0]	@  bg1map
 	bl	DMAFastCopy
-	ldr	r3, .L184+56
+	ldr	r3, .L184+72
 	mov	r1, #100663296
 	ldr	r0, [r3, #0]	@  mapTiles
 	mov	r2, #192
 	mov	r3, #-2080374784
 	bl	DMAFastCopy
-	ldr	r3, .L184+60
+	ldr	r3, .L184+76
 	mov	r1, #100663296
 	ldr	r0, [r3, #0]	@  hitMapTiles
-	mov	r2, r9
+	mov	r2, r8
 	mov	r3, #-2080374784
 	add	r1, r1, #32768
 	bl	DMAFastCopy
-	ldr	r3, .L184+64
+	ldr	r3, .L184+80
 	ldr	ip, [r3, #0]	@  map
-	ldr	r3, .L184+68
+	ldr	r3, .L184+84
 	ldr	r6, [r6, #0]	@  bg0map
 	ldr	r7, [r7, #0]	@  bg1map
 	ldr	r3, [r3, #0]	@  hitMap
@@ -15749,9 +15769,13 @@ Initialize:
 	.word	philJumpingData
 	.word	laserData
 	.word	sprites
-	.word	numberOfSprites
-	.word	sprites+120
+	.word	characterStandingRightBBox
+	.word	characterWalkingRightBBox
+	.word	characterWalkingLeftBBox
+	.word	characterStandingLeftBBox
 	.word	characterSpriteIndex
+	.word	sprites+120
+	.word	numberOfSprites
 	.word	mapPalette
 	.word	bg0map
 	.word	bg1map
@@ -15765,47 +15789,49 @@ Initialize:
 	.type	Update, %function
 Update:
 	@ Function supports interworking.
-	@ args = 0, pretend = 0, frame = 0
+	@ args = 0, pretend = 0, frame = 140
 	@ frame_needed = 1, uses_anonymous_args = 0
 	mov	ip, sp
 	stmfd	sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr, pc}
 	sub	fp, ip, #4
-	sub	sp, sp, #128
+	sub	sp, sp, #268
 	bl	keyPoll
 	mov	r0, #64
 	bl	keyHit
+	mov	r1, #0
 	cmp	r0, #0
-	mov	sl, #0	@  projectileMoveCounter
-	beq	.L236
-	ldr	r2, .L252
+	str	r1, [fp, #-180]	@  projectileMoveCounter
+	beq	.L251
+	ldr	r2, .L276
 	ldr	r3, [r2, #0]	@  isJumping
-	cmp	r3, sl
-	bne	.L236
-	ldr	r4, .L252+4
+	cmp	r3, r1
+	bne	.L251
+	ldr	r4, .L276+4
 	ldr	r3, [r4, #0]	@  characterSpriteIndex
-	ldr	r8, .L252+8
+	ldr	sl, .L276+8
 	add	r3, r3, r3, asl #4
-	add	r3, r8, r3, asl #3
+	add	r3, sl, r3, asl #3
 	mov	r2, #128
 	str	r2, [r3, #68]	@  <variable>.location
-	ldr	r3, .L252
+	ldr	r3, .L276
 	mov	r1, #1
 	str	r1, [r3, #0]	@  isJumping
-	ldr	r2, .L252+12
-	ldr	r3, .L252+16
-	str	sl, [r2, #0]	@  projectileMoveCounter,  walkingCounter
-	str	sl, [r3, #0]	@  projectileMoveCounter,  jumpDuration
+	ldr	r2, .L276+12
+	ldr	r3, .L276+16
+	mov	r1, #0
+	str	r1, [r3, #0]	@  jumpDuration
+	str	r1, [r2, #0]	@  walkingCounter
 .L187:
-	ldr	r2, .L252
+	ldr	r2, .L276
 	ldr	r3, [r2, #0]	@  isJumping
 	cmp	r3, #0
 	beq	.L188
-	ldr	r5, .L252+16
+	ldr	r5, .L276+16
 	ldr	r3, [r5, #0]	@  jumpDuration
 	cmp	r3, #19
-	ble	.L245
+	ble	.L266
 .L188:
-	ldr	r3, .L252+20
+	ldr	r3, .L276+20
 	mov	lr, pc
 	bx	r3
 .L189:
@@ -15813,12 +15839,12 @@ Update:
 	bl	keyHeld
 	cmp	r0, #0
 	beq	.L190
-	ldr	r2, .L252
-	ldr	r3, [r2, #0]	@  isJumping
+	ldr	r1, .L276
+	ldr	r3, [r1, #0]	@  isJumping
 	cmp	r3, #0
-	bne	.L238
-	ldr	r3, .L252+12
-	ldr	r2, .L252+24
+	bne	.L253
+	ldr	r3, .L276+12
+	ldr	r2, .L276+24
 	ldr	r1, [r3, #0]	@  walkingCounter
 	smull	r3, r0, r2, r1
 	mov	r3, r1, asr #31
@@ -15826,36 +15852,40 @@ Update:
 	add	r3, r3, r3, asl #2
 	sub	r1, r1, r3, asl #3
 	cmp	r1, #10
-	beq	.L246
+	beq	.L267
 	cmp	r1, #20
-	beq	.L243
+	beq	.L262
 	cmp	r1, #30
-	beq	.L247
+	beq	.L268
 	cmp	r1, #0
-	bne	.L238
-.L243:
-	ldr	r4, .L252+4
-	ldr	r3, [r4, #0]	@  characterSpriteIndex
-	add	r3, r3, r3, asl #4
-	add	r3, r8, r3, asl #3
-	mov	r2, #32
-.L241:
-	str	r2, [r3, #68]	@  <variable>.location
+	bne	.L253
+.L262:
+	ldr	r4, .L276+4
+	ldr	ip, [r4, #0]	@  characterSpriteIndex
+	add	ip, ip, ip, asl #4
+	add	ip, sl, ip, asl #3
+	mov	r3, #32
+	str	r3, [ip, #68]	@  <variable>.location
+	ldr	lr, .L276+28
+.L256:
+	ldmia	lr, {r0, r1, r2, r3}
+	add	ip, ip, #120
+	stmia	ip, {r0, r1, r2, r3}
 .L191:
 	ldr	r3, [r4, #0]	@  characterSpriteIndex
 	add	r3, r3, r3, asl #4
 	mov	r3, r3, asl #3
-	ldr	ip, [r3, r8]	@  prevX,  <variable>.x
-	add	r4, r3, r8
+	ldr	ip, [r3, sl]	@  prevX,  <variable>.x
+	add	r4, r3, sl
 	mov	r6, #1	@  dir
 	mov	r3, #0
 	cmp	ip, #119	@  prevX
 	str	r3, [r4, #60]	@  <variable>.hFlip
 	str	r6, [r4, #116]	@  dir,  <variable>.dir
-	ldr	r7, .L252+8
-	ldr	r9, .L252+4
+	ldr	r7, .L276+8
+	ldr	r8, .L276+4
 	ble	.L200
-	ldr	r3, .L252+28
+	ldr	r3, .L276+32
 	mov	r2, #508
 	ldr	r1, [r3, #0]	@  screenRight
 	add	r2, r2, #2
@@ -15864,7 +15894,7 @@ Update:
 .L200:
 	add	r1, r4, #8	@  dir
 	mov	r2, #128
-	ldr	r3, .L252+32
+	ldr	r3, .L276+36
 	mov	r0, sp
 	mov	r5, ip	@  prevX,  prevX
 	mov	lr, pc
@@ -15872,14 +15902,14 @@ Update:
 	ldmia	r4, {r2, r3}
 	mov	r0, r4
 	mov	r1, r6	@  dir
-	ldr	ip, .L252+36
+	ldr	ip, .L276+40
 	mov	lr, pc
 	bx	ip
-	ldr	r3, [r9, #0]	@  characterSpriteIndex
+	ldr	r3, [r8, #0]	@  characterSpriteIndex
 	add	r3, r3, r3, asl #4
 	ldr	r2, [r7, r3, asl #3]	@  <variable>.x
 	cmp	r5, r2	@  prevX
-	ldrne	r2, .L252+12
+	ldrne	r2, .L276+12
 	ldrne	r3, [r2, #0]	@  walkingCounter
 	addne	r3, r3, #1
 	strne	r3, [r2, #0]	@  walkingCounter
@@ -15888,12 +15918,12 @@ Update:
 	bl	keyHeld
 	cmp	r0, #0
 	beq	.L204
-	ldr	r2, .L252
-	ldr	r3, [r2, #0]	@  isJumping
+	ldr	r1, .L276
+	ldr	r3, [r1, #0]	@  isJumping
 	cmp	r3, #0
-	bne	.L240
-	ldr	r3, .L252+12
-	ldr	r2, .L252+24
+	bne	.L255
+	ldr	r3, .L276+12
+	ldr	r2, .L276+24
 	ldr	r1, [r3, #0]	@  walkingCounter
 	smull	r3, r0, r2, r1
 	mov	r3, r1, asr #31
@@ -15901,43 +15931,47 @@ Update:
 	add	r3, r3, r3, asl #2
 	sub	r1, r1, r3, asl #3
 	cmp	r1, #10
-	beq	.L248
+	beq	.L269
 	cmp	r1, #20
-	beq	.L244
+	beq	.L264
 	cmp	r1, #30
-	beq	.L249
+	beq	.L270
 	cmp	r1, #0
-	bne	.L240
-.L244:
-	ldr	r4, .L252+4
-	ldr	r3, [r4, #0]	@  characterSpriteIndex
-	add	r3, r3, r3, asl #4
-	add	r3, r8, r3, asl #3
-	mov	r2, #32
-.L242:
-	str	r2, [r3, #68]	@  <variable>.location
+	bne	.L255
+.L264:
+	ldr	r4, .L276+4
+	ldr	ip, [r4, #0]	@  characterSpriteIndex
+	add	ip, ip, ip, asl #4
+	add	ip, sl, ip, asl #3
+	mov	r3, #32
+	str	r3, [ip, #68]	@  <variable>.location
+	ldr	lr, .L276+44
+.L257:
+	ldmia	lr, {r0, r1, r2, r3}
+	add	ip, ip, #120
+	stmia	ip, {r0, r1, r2, r3}
 .L205:
 	ldr	r3, [r4, #0]	@  characterSpriteIndex
 	add	r3, r3, r3, asl #4
 	mov	r3, r3, asl #3
-	ldr	ip, [r3, r8]	@  prevX,  <variable>.x
-	add	r4, r3, r8
+	ldr	ip, [r3, sl]	@  prevX,  <variable>.x
+	add	r4, r3, sl
 	mov	r6, #0	@  dir
 	mov	r3, #1
 	cmp	ip, #120	@  prevX
 	str	r3, [r4, #60]	@  <variable>.hFlip
 	str	r6, [r4, #116]	@  dir,  <variable>.dir
-	ldr	r7, .L252+8
-	ldr	r9, .L252+4
+	ldr	r7, .L276+8
+	ldr	r8, .L276+4
 	bgt	.L214
-	ldr	r3, .L252+40
+	ldr	r3, .L276+48
 	ldr	r2, [r3, #0]	@  screenLeft
 	cmp	r2, r6
 	bne	.L213
 .L214:
 	add	r1, r4, #8	@  dir
 	mov	r2, #128
-	ldr	r3, .L252+32
+	ldr	r3, .L276+36
 	mov	r0, sp
 	mov	r5, ip	@  prevX,  prevX
 	mov	lr, pc
@@ -15945,14 +15979,14 @@ Update:
 	ldmia	r4, {r2, r3}
 	mov	r0, r4
 	mov	r1, r6	@  dir
-	ldr	ip, .L252+36
+	ldr	ip, .L276+40
 	mov	lr, pc
 	bx	ip
-	ldr	r3, [r9, #0]	@  characterSpriteIndex
+	ldr	r3, [r8, #0]	@  characterSpriteIndex
 	add	r3, r3, r3, asl #4
 	ldr	r2, [r7, r3, asl #3]	@  <variable>.x
 	cmp	r5, r2	@  prevX
-	ldrne	r2, .L252+12
+	ldrne	r2, .L276+12
 	ldrne	r3, [r2, #0]	@  walkingCounter
 	addne	r3, r3, #1
 	strne	r3, [r2, #0]	@  walkingCounter
@@ -15960,50 +15994,59 @@ Update:
 	mov	r0, #1
 	bl	keyHit
 	cmp	r0, #0
-	bne	.L250
+	bne	.L271
 .L218:
+	ldr	r8, .L276+8
 	mov	r6, #0	@  i
 	mov	r7, #127	@  i
-.L224:
-	add	r5, r6, r8	@  i
+.L236:
+	add	r5, r6, sl	@  i
 	ldr	r3, [r5, #76]	@  <variable>.isProjectile
 	cmp	r3, #0
-	beq	.L221
+	beq	.L224
 	ldr	r3, [r5, #84]	@  <variable>.isRemoved
 	cmp	r3, #0
-	add	r1, r5, #8	@  dir
-	mov	r2, #128
-	mov	r0, sp
-	beq	.L251
-.L221:
+	beq	.L272
+.L224:
 	subs	r7, r7, #1	@  i,  i
 	add	r6, r6, #136	@  i,  i
-	bpl	.L224
+	bpl	.L236
 	mov	r0, #32
 	bl	keyHeld
 	cmp	r0, #0
-	bne	.L225
+	bne	.L237
 	mov	r0, #16
 	bl	keyHeld
 	cmp	r0, #0
-	bne	.L225
-	ldr	r2, .L252
+	bne	.L237
+	ldr	r2, .L276
 	ldr	r3, [r2, #0]	@  isJumping
 	cmp	r3, #0
-	bne	.L225
-	ldr	r3, .L252+4
+	bne	.L237
+	ldr	r3, .L276+4
 	ldr	r2, [r3, #0]	@  characterSpriteIndex
 	add	r2, r2, r2, asl #4
-	add	r2, r8, r2, asl #3
+	add	lr, sl, r2, asl #3
+	ldr	r2, [lr, #116]	@  <variable>.dir
 	mov	r3, #32
-	str	r3, [r2, #68]	@  <variable>.location
-.L225:
+	cmp	r2, #1
+	str	r3, [lr, #68]	@  <variable>.location
+	ldreq	ip, .L276+28
+	beq	.L260
+	cmp	r2, #0
+	bne	.L237
+	ldr	ip, .L276+44
+.L260:
+	ldmia	ip, {r0, r1, r2, r3}
+	add	lr, lr, #120
+	stmia	lr, {r0, r1, r2, r3}
+.L237:
 	bl	WaitVBlank
-	ldr	r0, .L252+8
+	ldr	r0, .L276+8
 	mov	r1, #128
 	bl	UpdateSpriteMemory
-	ldr	r3, .L252+44
-	ldr	r2, .L252+48
+	ldr	r3, .L276+52
+	ldr	r2, .L276+56
 	ldrh	r0, [r3, #0]	@  regY
 	ldrh	r1, [r2, #0]	@  regX
 	mov	r3, #67108864
@@ -16011,140 +16054,210 @@ Update:
 	strh	r1, [r3, #16]	@ movhi 
 	mov	r3, #39936	@  n
 	add	r3, r3, #64	@  n,  n
-.L230:
+.L245:
 	subs	r3, r3, #1	@  n,  n
-	bne	.L230
+	bne	.L245
 	ldmea	fp, {r4, r5, r6, r7, r8, r9, sl, fp, sp, lr}
 	bx	lr
-.L251:
+.L272:
 	ldr	r4, [r5, #116]	@  dir,  <variable>.dir
-	ldr	r3, .L252+32
+	add	r1, r5, #8	@  dir
+	mov	r2, #128
+	ldr	r3, .L276+36
+	mov	r0, sp
 	mov	lr, pc
 	bx	r3
-	ldmia	r5, {r2, r3}
 	mov	r1, r4	@  dir
 	mov	r0, r5
-	ldr	ip, .L252+36
+	ldmia	r5, {r2, r3}
+	ldr	ip, .L276+40
 	mov	lr, pc
 	bx	ip
+	cmp	r9, #1	@  mapMoved
+	beq	.L273
+	cmp	r9, #0	@  mapMoved
+	bne	.L224
+	ldr	r3, [r5, #116]	@  <variable>.dir
+	cmp	r3, #1
+	beq	.L265
+	cmp	r3, #0
+	bne	.L224
+	ldr	r1, [fp, #-180]	@  projectileMoveCounter
 	ldr	r2, [r6, r8]	@  <variable>.x
 	ldr	r3, [r5, #44]	@  <variable>.mapX
-	add	r2, r2, sl	@  projectileMoveCounter
-	add	r3, r3, sl	@  projectileMoveCounter
+	rsb	r2, r1, r2
+	rsb	r3, r1, r3
+.L259:
 	str	r3, [r5, #44]	@  <variable>.mapX
 	str	r2, [r6, r8]	@  <variable>.x
-	b	.L221
-.L250:
-	ldr	r2, .L252+4
-	ldr	r3, [r2, #0]	@  characterSpriteIndex
-	add	r3, r3, r3, asl #4
-	mov	r3, r3, asl #3
-	add	ip, r3, r8
-	ldr	lr, [ip, #116]	@  <variable>.dir
-	ldr	r0, [r3, r8]	@  <variable>.x
-	ldr	r1, [ip, #4]	@  dir,  <variable>.y
-	add	r2, ip, #44
-	ldmia	r2, {r2, r3}	@ phole ldm
-	str	lr, [sp, #0]
-	ldr	ip, .L252+52
+	b	.L224
+.L265:
+	ldr	r1, [fp, #-180]	@  projectileMoveCounter
+	ldr	r2, [r6, r8]	@  <variable>.x
+	ldr	r3, [r5, #44]	@  <variable>.mapX
+	add	r2, r2, r1
+	add	r3, r3, r1
+	b	.L259
+.L273:
+	ldr	r3, [r5, #116]	@  <variable>.dir
+	cmp	r3, #1
+	beq	.L274
+	cmp	r3, #0
+	bne	.L224
+	b	.L265
+.L274:
+	ldr	r2, [r6, sl]	@  <variable>.x
+	ldr	r3, [r5, #44]	@  <variable>.mapX
+	ldr	r1, [fp, #-180]	@  projectileMoveCounter
+	rsb	r2, r1, r2
+	rsb	r3, r1, r3
+	str	r3, [r5, #44]	@  <variable>.mapX
+	str	r2, [r6, sl]	@  <variable>.x
+	b	.L224
+.L271:
+	ldr	r3, .L276+4
+	ldr	r1, [r3, #0]	@  characterSpriteIndex
+	add	r1, r1, r1, asl #4
+	add	r1, sl, r1, asl #3	@  dir
+	sub	r0, fp, #176
+	mov	r2, #136
+	ldr	r3, .L276+36
+	mov	lr, pc
+	bx	r3
+	ldr	ip, [fp, #-60]	@  character.dir
+	cmp	ip, #1
+	beq	.L275
+	cmp	ip, #0
+	bne	.L218
+	sub	r0, fp, #176
+	ldmia	r0, {r0, r1}	@ phole ldm
+	ldr	r2, [fp, #-132]	@  character.mapX
+	add	r0, r0, #2
+	add	r1, r1, #7	@  dir
+	add	r2, r2, #2
+.L258:
+	ldr	r3, [fp, #-128]	@  character.mapY
+	str	ip, [sp, #0]
+	add	r3, r3, #7
+	ldr	ip, .L276+60
 	mov	lr, pc
 	bx	ip
 	b	.L218
+.L275:
+	sub	r0, fp, #176
+	ldmia	r0, {r0, r1}	@ phole ldm
+	ldr	r2, [fp, #-132]	@  character.mapX
+	add	r0, r0, #20
+	add	r1, r1, #7	@  dir
+	add	r2, r2, #20
+	b	.L258
 .L213:
-	ldr	r2, .L252+56
 	str	r6, [r4, #116]	@  dir,  <variable>.dir
+	ldr	r2, .L276+64
 	ldr	r5, [r4, #44]	@  prevX,  <variable>.mapX
 	mov	lr, pc
 	bx	r2
-	ldr	r3, [r9, #0]	@  characterSpriteIndex
+	ldr	r3, [r8, #0]	@  characterSpriteIndex
 	add	r3, r3, r3, asl #4
 	add	r3, r7, r3, asl #3
 	ldr	r1, [r3, #44]	@  <variable>.mapX
 	cmp	r5, r1	@  prevX
-	ldrne	r2, .L252+12
-	ldrne	r3, [r2, #0]	@  walkingCounter
-	addne	r3, r3, #1
-	strne	r3, [r2, #0]	@  walkingCounter
-	rsbne	sl, r1, r5	@  projectileMoveCounter,  prevX
+	beq	.L204
+	ldr	r2, .L276+12
+	ldr	r3, [r2, #0]	@  walkingCounter
+	rsb	r5, r1, r5	@  prevX
+	add	r3, r3, #1
+	str	r3, [r2, #0]	@  walkingCounter
+	str	r5, [fp, #-180]	@  projectileMoveCounter
+	mov	r9, r6	@  mapMoved,  dir
 	b	.L204
-.L240:
-	ldr	r4, .L252+4
+.L255:
+	ldr	r4, .L276+4
 	b	.L205
-.L249:
-	ldr	r4, .L252+4
-	ldr	r3, [r4, #0]	@  characterSpriteIndex
-	add	r3, r3, r3, asl #4
-	add	r3, r8, r3, asl #3
-	mov	r2, #96
-	b	.L242
-.L248:
-	ldr	r4, .L252+4
-	ldr	r3, [r4, #0]	@  characterSpriteIndex
-	add	r3, r3, r3, asl #4
-	add	r3, r8, r3, asl #3
-	mov	r2, #64
-	b	.L242
+.L270:
+	ldr	r4, .L276+4
+	ldr	ip, [r4, #0]	@  characterSpriteIndex
+	add	ip, ip, ip, asl #4
+	add	ip, sl, ip, asl #3
+	mov	r3, #96
+.L263:
+	ldr	lr, .L276+68
+	str	r3, [ip, #68]	@  <variable>.location
+	b	.L257
+.L269:
+	ldr	r4, .L276+4
+	ldr	ip, [r4, #0]	@  characterSpriteIndex
+	add	ip, ip, ip, asl #4
+	add	ip, sl, ip, asl #3
+	mov	r3, #64
+	b	.L263
 .L199:
-	ldr	r2, .L252+60
 	str	r6, [r4, #116]	@  dir,  <variable>.dir
+	ldr	r2, .L276+72
 	ldr	r5, [r4, #44]	@  prevX,  <variable>.mapX
 	mov	lr, pc
 	bx	r2
-	ldr	r3, [r9, #0]	@  characterSpriteIndex
+	ldr	r3, [r8, #0]	@  characterSpriteIndex
 	add	r3, r3, r3, asl #4
 	add	r3, r7, r3, asl #3
 	ldr	r1, [r3, #44]	@  <variable>.mapX
 	cmp	r5, r1	@  prevX
-	ldrne	r2, .L252+12
-	ldrne	r3, [r2, #0]	@  walkingCounter
-	addne	r3, r3, #1
-	strne	r3, [r2, #0]	@  walkingCounter
-	rsbne	sl, r1, r5	@  projectileMoveCounter,  prevX
+	beq	.L190
+	ldr	r2, .L276+12
+	ldr	r3, [r2, #0]	@  walkingCounter
+	rsb	r1, r5, r1	@  prevX
+	add	r3, r3, #1
+	str	r3, [r2, #0]	@  walkingCounter
+	str	r1, [fp, #-180]	@  projectileMoveCounter
+	mov	r9, r6	@  mapMoved,  dir
 	b	.L190
-.L238:
-	ldr	r4, .L252+4
+.L253:
+	ldr	r4, .L276+4
 	b	.L191
-.L247:
-	ldr	r4, .L252+4
-	ldr	r3, [r4, #0]	@  characterSpriteIndex
-	add	r3, r3, r3, asl #4
-	add	r3, r8, r3, asl #3
-	mov	r2, #96
-	b	.L241
-.L246:
-	ldr	r4, .L252+4
-	ldr	r3, [r4, #0]	@  characterSpriteIndex
-	add	r3, r3, r3, asl #4
-	add	r3, r8, r3, asl #3
-	mov	r2, #64
-	b	.L241
-.L245:
-	ldr	r4, .L252+4
+.L268:
+	ldr	r4, .L276+4
+	ldr	ip, [r4, #0]	@  characterSpriteIndex
+	add	ip, ip, ip, asl #4
+	add	ip, sl, ip, asl #3
+	mov	r3, #96
+.L261:
+	ldr	lr, .L276+76
+	str	r3, [ip, #68]	@  <variable>.location
+	b	.L256
+.L267:
+	ldr	r4, .L276+4
+	ldr	ip, [r4, #0]	@  characterSpriteIndex
+	add	ip, ip, ip, asl #4
+	add	ip, sl, ip, asl #3
+	mov	r3, #64
+	b	.L261
+.L266:
+	ldr	r4, .L276+4
 	ldr	r4, [r4, #0]	@  characterSpriteIndex
 	add	r4, r4, r4, asl #4
-	add	r4, r8, r4, asl #3
+	add	r4, sl, r4, asl #3
 	add	r1, r4, #8	@  dir
 	mov	r2, #128
-	ldr	r3, .L252+32
+	ldr	r3, .L276+36
 	mov	r0, sp
 	mov	lr, pc
 	bx	r3
 	ldmia	r4, {r2, r3}
 	mov	r0, r4
 	mov	r1, #2
-	ldr	ip, .L252+36
+	ldr	ip, .L276+40
 	mov	lr, pc
 	bx	ip
 	ldr	r3, [r5, #0]	@  jumpDuration
 	add	r3, r3, #1
 	str	r3, [r5, #0]	@  jumpDuration
 	b	.L189
-.L236:
-	ldr	r8, .L252+8
+.L251:
+	ldr	sl, .L276+8
 	b	.L187
-.L253:
+.L277:
 	.align	2
-.L252:
+.L276:
 	.word	isJumping
 	.word	characterSpriteIndex
 	.word	sprites
@@ -16152,15 +16265,19 @@ Update:
 	.word	jumpDuration
 	.word	Gravity
 	.word	1717986919
+	.word	characterStandingRightBBox
 	.word	screenRight
 	.word	memcpy
 	.word	Move
+	.word	characterStandingLeftBBox
 	.word	screenLeft
 	.word	regY
 	.word	regX
 	.word	Shoot
 	.word	MoveMapLeft
+	.word	characterWalkingLeftBBox
 	.word	MoveMapRight
+	.word	characterWalkingRightBBox
 	.size	Update, .-Update
 	.align	2
 	.global	main
@@ -16173,9 +16290,9 @@ main:
 	stmfd	sp!, {fp, ip, lr, pc}
 	sub	fp, ip, #4
 	bl	Initialize
-.L258:
+.L282:
 	bl	Update
-	b	.L258
+	b	.L282
 	.size	main, .-main
 	.align	2
 	.global	Gravity
@@ -16188,68 +16305,83 @@ Gravity:
 	stmfd	sp!, {r4, r5, r6, r7, fp, ip, lr, pc}
 	sub	fp, ip, #4
 	sub	sp, sp, #120
-	ldr	r6, .L271
+	ldr	r6, .L299
 	ldr	r3, [r6, #0]	@  numberOfSprites
 	mov	r5, #0	@  i
 	cmp	r5, r3	@  i
-	bge	.L261
-	ldr	r4, .L271+4
+	bge	.L285
+	ldr	r4, .L299+4
 	mov	r7, r4
-.L267:
+.L294:
 	ldr	r3, [r4, #72]	@  <variable>.noGravity
 	cmp	r3, #0
 	add	r1, r4, #16
 	mov	r2, #120
 	mov	r0, sp
 	add	r5, r5, #1	@  i,  i
-	beq	.L269
-.L262:
+	beq	.L297
+.L286:
 	ldr	r3, [r6, #0]	@  numberOfSprites
 	cmp	r5, r3	@  i
 	add	r4, r4, #136
-	blt	.L267
-.L261:
+	blt	.L294
+.L285:
 	ldmea	fp, {r4, r5, r6, r7, fp, sp, lr}
 	bx	lr
-.L269:
-	ldr	r3, .L271+8
+.L297:
+	ldr	r3, .L299+8
 	mov	lr, pc
 	bx	r3
 	ldmia	r4, {r0, r1, r2, r3}
-	ldr	ip, .L271+12
+	ldr	ip, .L299+12
 	mov	lr, pc
 	bx	ip
 	cmp	r0, #0
-	beq	.L270
+	beq	.L298
 	ldr	r3, [r4, #4]	@  <variable>.y
 	ldr	r2, [r4, #48]	@  <variable>.mapY
 	add	r3, r3, #1
 	add	r2, r2, #1
 	str	r3, [r4, #4]	@  <variable>.y
 	str	r2, [r4, #48]	@  <variable>.mapY
-	b	.L262
-.L270:
-	ldr	r1, .L271+16
-	ldr	r3, [r1, #0]	@  isJumping
+	b	.L286
+.L298:
+	ldr	r4, .L299+16
+	ldr	r3, [r4, #0]	@  isJumping
 	cmp	r3, #0
-	beq	.L261
-	ldr	r3, .L271+20
+	beq	.L285
+	ldr	r3, .L299+20
 	ldr	r2, [r3, #0]	@  characterSpriteIndex
 	add	r2, r2, r2, asl #4
-	add	r2, r7, r2, asl #3
+	add	lr, r7, r2, asl #3
+	ldr	r2, [lr, #116]	@  <variable>.dir
 	mov	r3, #32
-	str	r3, [r2, #68]	@  <variable>.location
-	str	r0, [r1, #0]	@  isJumping
-	b	.L261
-.L272:
+	cmp	r2, #1
+	str	r3, [lr, #68]	@  <variable>.location
+	ldreq	ip, .L299+24
+	beq	.L296
+	cmp	r2, #0
+	bne	.L292
+	ldr	ip, .L299+28
+.L296:
+	ldmia	ip, {r0, r1, r2, r3}
+	add	lr, lr, #120
+	stmia	lr, {r0, r1, r2, r3}
+.L292:
+	mov	r3, #0
+	str	r3, [r4, #0]	@  isJumping
+	b	.L285
+.L300:
 	.align	2
-.L271:
+.L299:
 	.word	numberOfSprites
 	.word	sprites
 	.word	memcpy
 	.word	CanMoveDown
 	.word	isJumping
 	.word	characterSpriteIndex
+	.word	characterStandingRightBBox
+	.word	characterStandingLeftBBox
 	.size	Gravity, .-Gravity
 	.align	2
 	.global	GetNextTile
@@ -16272,7 +16404,7 @@ GetNextTile:
 	mov	r3, r0, asr #31	@  x
 	add	r0, r0, r3, lsr #29	@  x
 	mov	r1, r1, asr #3
-	ldr	r3, .L274
+	ldr	r3, .L302
 	mov	r1, r1, asl #5
 	add	r1, r1, r0, asr #3
 	ldr	r2, [r3, #0]	@  bg1map
@@ -16280,9 +16412,9 @@ GetNextTile:
 	ldrh	r0, [r1, r2]	@  x
 	@ lr needed for prologue
 	bx	lr
-.L275:
+.L303:
 	.align	2
-.L274:
+.L302:
 	.word	bg1map
 	.size	GetNextTile, .-GetNextTile
 	.align	2
@@ -16298,12 +16430,12 @@ Shoot:
 	sub	sp, sp, #28
 	str	r0, [fp, #-60]	@  startX
 	str	r1, [fp, #-64]	@  startY
-	ldr	r0, .L277
+	ldr	r0, .L305
 	mov	r1, #128
 	mov	r8, r2	@  mapX
 	str	r3, [fp, #-68]	@  mapY
 	bl	GetNextFreePosition
-	ldr	sl, .L277+4
+	ldr	sl, .L305+4
 	mov	r7, #0
 	ldr	r5, [sl, #0]	@  numberOfSprites
 	mov	r3, #8
@@ -16312,7 +16444,7 @@ Shoot:
 	str	r7, [fp, #-56]	@  laserBBox.x
 	str	r7, [fp, #-52]	@  laserBBox.y
 	add	r4, r0, r0, asl #4	@  location,  location
-	ldr	r3, .L277
+	ldr	r3, .L305
 	mov	r4, r4, asl #3
 	sub	ip, fp, #56
 	add	r5, r5, #1
@@ -16320,7 +16452,7 @@ Shoot:
 	ldmia	ip, {r0, r1, r2, r3}
 	str	r5, [sl, #0]	@  numberOfSprites
 	ldr	ip, [fp, #-60]	@  startX
-	ldr	r5, .L277
+	ldr	r5, .L305
 	str	ip, [r4, r5]	@  <variable>.x
 	ldr	ip, [fp, #-68]	@  mapY
 	ldr	r5, [fp, #-64]	@  startY
@@ -16336,16 +16468,16 @@ Shoot:
 	ldr	r3, [fp, #4]	@  dir,  dir
 	mov	r9, #1
 	str	r3, [lr, #116]	@  dir,  <variable>.dir
-	mov	r3, #2
+	mov	r3, #5
 	str	r9, [lr, #76]	@  <variable>.isProjectile
 	str	r3, [lr, #80]	@  <variable>.speed
 	str	r7, [lr, #84]	@  <variable>.isRemoved
 	str	r9, [lr, #72]	@  <variable>.noGravity
 	ldmea	fp, {r4, r5, r6, r7, r8, r9, sl, fp, sp, lr}
 	bx	lr
-.L278:
+.L306:
 	.align	2
-.L277:
+.L305:
 	.word	sprites
 	.word	numberOfSprites
 	.size	Shoot, .-Shoot
@@ -16365,13 +16497,13 @@ Move:
 	cmp	r1, #1	@  direction
 	mov	r5, r0	@  direction
 	stmia	r4, {r2, r3}	@  direction
-	beq	.L286
-	bcc	.L281
+	beq	.L314
+	bcc	.L309
 	cmp	r1, #2	@  direction
-	beq	.L290
-.L296:
-	ldr	r6, .L298
-.L280:
+	beq	.L318
+.L324:
+	ldr	r6, .L326
+.L308:
 	mov	r1, r4	@  direction
 	mov	r0, r5	@  direction
 	mov	r2, #136
@@ -16380,45 +16512,45 @@ Move:
 	mov	r0, r5	@  direction
 	ldmea	fp, {r4, r5, r6, fp, sp, lr}
 	bx	lr
-.L290:
+.L318:
 	ldr	r3, [fp, #52]	@  sprite.mapY
 	cmp	r3, #0
-	ble	.L296
+	ble	.L324
 	add	r1, fp, #20
 	mov	r2, #120
 	mov	r0, sp
-	ldr	r6, .L298
+	ldr	r6, .L326
 	mov	lr, pc
 	bx	r6
 	ldmia	r4, {r0, r1, r2, r3}	@  direction
-	ldr	ip, .L298+4
+	ldr	ip, .L326+4
 	mov	lr, pc
 	bx	ip
 	cmp	r0, #0	@  direction
-	beq	.L280
+	beq	.L308
 	ldr	r2, [fp, #8]	@  sprite.y
 	ldr	r3, [fp, #52]	@  sprite.mapY
 	sub	r2, r2, #1
 	sub	r3, r3, #1
 	str	r2, [fp, #8]	@  sprite.y
 	str	r3, [fp, #52]	@  sprite.mapY
-	b	.L280
-.L281:
+	b	.L308
+.L309:
 	ldr	r3, [fp, #48]	@  sprite.mapX
 	cmp	r3, #0
-	ble	.L295
+	ble	.L323
 	add	r1, fp, #20
 	mov	r2, #120
 	mov	r0, sp
-	ldr	r6, .L298
+	ldr	r6, .L326
 	mov	lr, pc
 	bx	r6
 	ldmia	r4, {r0, r1, r2, r3}	@  direction
-	ldr	ip, .L298+8
+	ldr	ip, .L326+8
 	mov	lr, pc
 	bx	ip
 	cmp	r0, #0	@  direction
-	beq	.L287
+	beq	.L315
 	ldr	r0, [fp, #84]	@  sprite.speed
 	ldr	r1, [fp, #48]	@  sprite.mapX
 	ldr	r2, [fp, #4]	@  sprite.x
@@ -16428,10 +16560,10 @@ Move:
 	cmp	r3, #0
 	str	r1, [fp, #48]	@  sprite.mapX
 	str	r2, [fp, #4]	@  sprite.x
-	beq	.L280
+	beq	.L308
 	cmp	r2, #0
-	bne	.L280
-.L297:
+	bne	.L308
+.L325:
 	add	r1, fp, #16
 	mov	r0, sp
 	mov	r2, #124
@@ -16439,36 +16571,36 @@ Move:
 	bx	r6
 	mov	r0, r4	@  direction
 	ldmia	r4, {r1, r2, r3}	@  direction
-	ldr	ip, .L298+12
+	ldr	ip, .L326+12
 	mov	lr, pc
 	bx	ip
-	b	.L280
-.L287:
+	b	.L308
+.L315:
 	ldr	r3, [fp, #80]	@  sprite.isProjectile
 	cmp	r3, #0
-	beq	.L280
-	b	.L297
-.L295:
-	ldr	r6, .L298
-	b	.L287
-.L286:
+	beq	.L308
+	b	.L325
+.L323:
+	ldr	r6, .L326
+	b	.L315
+.L314:
 	mov	r3, #508
 	ldr	r2, [fp, #48]	@  sprite.mapX
 	add	r3, r3, #2
 	cmp	r2, r3
-	bgt	.L295
+	bgt	.L323
 	add	r1, fp, #20
 	mov	r2, #120
 	mov	r0, sp
-	ldr	r6, .L298
+	ldr	r6, .L326
 	mov	lr, pc
 	bx	r6
 	ldmia	r4, {r0, r1, r2, r3}	@  direction
-	ldr	ip, .L298+16
+	ldr	ip, .L326+16
 	mov	lr, pc
 	bx	ip
 	cmp	r0, #0	@  direction
-	beq	.L287
+	beq	.L315
 	ldr	r1, [fp, #84]	@  sprite.speed
 	ldr	r2, [fp, #48]	@  sprite.mapX
 	ldr	r3, [fp, #4]	@  sprite.x
@@ -16476,10 +16608,10 @@ Move:
 	add	r3, r3, r1
 	str	r3, [fp, #4]	@  sprite.x
 	str	r2, [fp, #48]	@  sprite.mapX
-	b	.L280
-.L299:
+	b	.L308
+.L327:
 	.align	2
-.L298:
+.L326:
 	.word	memcpy
 	.word	CanMoveUp
 	.word	CanMoveLeft
@@ -16497,43 +16629,43 @@ MoveMapLeft:
 	stmfd	sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr, pc}
 	sub	fp, ip, #4
 	sub	sp, sp, #120
-	ldr	r9, .L305
+	ldr	r9, .L333
 	ldr	r3, [r9, #0]	@  screenLeft
 	cmp	r3, #0
-	ldr	r5, .L305+4
-	ldr	r6, .L305+8
+	ldr	r5, .L333+4
+	ldr	r6, .L333+8
 	mov	r2, #120
 	mov	r0, sp
-	ble	.L300
+	ble	.L328
 	ldr	r4, [r5, #0]	@  characterSpriteIndex
 	add	r4, r4, r4, asl #4
 	add	r4, r6, r4, asl #3
 	add	r1, r4, #16
-	ldr	r3, .L305+12
+	ldr	r3, .L333+12
 	mov	lr, pc
 	bx	r3
 	ldmia	r4, {r0, r1, r2, r3}
-	ldr	ip, .L305+16
+	ldr	ip, .L333+16
 	mov	lr, pc
 	bx	ip
 	cmp	r0, #0
-	beq	.L300
-	ldr	r2, .L305+20
+	beq	.L328
+	ldr	r2, .L333+20
 	ldr	ip, [r9, #0]	@  screenLeft
 	ldr	r3, [r5, #0]	@  characterSpriteIndex
 	ldr	r4, [r2, #0]	@  mapLeft
-	ldr	r2, .L305+24
+	ldr	r2, .L333+24
 	sub	r7, ip, #1
 	add	r3, r3, r3, asl #4
 	ldr	lr, [r2, #0]	@  regX
 	add	r8, r6, r3, asl #3
-	ldr	r2, .L305+28
+	ldr	r2, .L333+28
 	mov	r3, r7, asr #31
 	add	r3, r7, r3, lsr #29
 	ldr	r5, [r2, #0]	@  screenRight
 	mov	r6, r3, asr #3
 	mov	r2, ip, asr #31
-	ldr	r3, .L305+24
+	ldr	r3, .L333+24
 	add	ip, ip, r2, lsr #29
 	sub	lr, lr, #1
 	cmp	r4, #0
@@ -16543,52 +16675,52 @@ MoveMapLeft:
 	sub	r5, r5, #1
 	sub	r4, r4, #1
 	str	lr, [r3, #0]	@  regX
-	ble	.L302
-	ldr	ip, .L305+32
+	ble	.L330
+	ldr	ip, .L333+32
 	ldr	r3, [ip, #0]	@  mapRight
-	ldr	lr, .L305+20
+	ldr	lr, .L333+20
 	sub	r3, r3, #1
 	str	r4, [lr, #0]	@  mapLeft
 	str	r3, [ip, #0]	@  mapRight
-.L302:
-	ldr	r2, .L305+28
+.L330:
+	ldr	r2, .L333+28
 	ldr	r3, [r8, #44]	@  <variable>.mapX
 	ldr	ip, [r8, #80]	@  <variable>.speed
-	ldr	lr, .L305+36
+	ldr	lr, .L333+36
 	str	r5, [r2, #0]	@  screenRight
-	ldr	r2, .L305+40
+	ldr	r2, .L333+40
 	rsb	r3, ip, r3
 	cmp	r6, sl
 	str	sl, [r2, #0]	@  prevColumn
 	str	r7, [r9, #0]	@  screenLeft
 	str	r6, [lr, #0]	@  nextColumn
 	str	r3, [r8, #44]	@  <variable>.mapX
-	blt	.L304
-.L300:
+	blt	.L332
+.L328:
 	ldmea	fp, {r4, r5, r6, r7, r8, r9, sl, fp, sp, lr}
 	bx	lr
-.L304:
-	ldr	r3, .L305+44
-	ldr	ip, .L305+48
+.L332:
+	ldr	r3, .L333+44
+	ldr	ip, .L333+48
 	ldr	r2, [r3, #0]	@  mapTop
-	ldr	lr, .L305+52
+	ldr	lr, .L333+52
 	ldr	r3, [ip, #0]	@  mapBottom
-	ldr	ip, .L305+56
+	ldr	ip, .L333+56
 	ldr	r4, [ip, #0]	@  map
 	ldr	ip, [lr, #0]	@  bg0map
 	mov	lr, #64
 	stmia	sp, {r4, ip, lr}	@ phole stm
-	ldr	ip, .L305+60
+	ldr	ip, .L333+60
 	mov	lr, pc
 	bx	ip
-	ldr	lr, .L305+36
-	ldr	r3, .L305+44
-	ldr	ip, .L305+48
+	ldr	lr, .L333+36
+	ldr	r3, .L333+44
+	ldr	ip, .L333+48
 	ldr	r1, [lr, #0]	@  nextColumn
 	ldr	r2, [r3, #0]	@  mapTop
-	ldr	lr, .L305+64
+	ldr	lr, .L333+64
 	ldr	r3, [ip, #0]	@  mapBottom
-	ldr	ip, .L305+68
+	ldr	ip, .L333+68
 	ldr	r4, [ip, #0]	@  hitMap
 	ldr	ip, [lr, #0]	@  bg1map
 	mov	lr, #64
@@ -16596,13 +16728,13 @@ MoveMapLeft:
 	ldr	r0, [r9, #0]	@  screenLeft
 	str	r4, [sp, #0]
 	str	lr, [sp, #8]
-	ldr	ip, .L305+60
+	ldr	ip, .L333+60
 	mov	lr, pc
 	bx	ip
-	b	.L300
-.L306:
+	b	.L328
+.L334:
 	.align	2
-.L305:
+.L333:
 	.word	screenLeft
 	.word	characterSpriteIndex
 	.word	sprites
@@ -16633,39 +16765,39 @@ MoveMapRight:
 	stmfd	sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr, pc}
 	sub	fp, ip, #4
 	sub	sp, sp, #120
-	ldr	r7, .L312
+	ldr	r7, .L340
 	ldr	r3, [r7, #0]	@  screenRight
 	mov	r5, #508
 	add	r5, r5, #2
 	cmp	r3, r5
-	ldr	r6, .L312+4
-	ldr	r8, .L312+8
+	ldr	r6, .L340+4
+	ldr	r8, .L340+8
 	mov	r2, #120
 	mov	r0, sp
-	ble	.L311
-.L307:
+	ble	.L339
+.L335:
 	ldmea	fp, {r4, r5, r6, r7, r8, r9, sl, fp, sp, lr}
 	bx	lr
-.L311:
+.L339:
 	ldr	r4, [r6, #0]	@  characterSpriteIndex
 	add	r4, r4, r4, asl #4
 	add	r4, r8, r4, asl #3
 	add	r1, r4, #16
-	ldr	r3, .L312+12
+	ldr	r3, .L340+12
 	mov	lr, pc
 	bx	r3
 	ldmia	r4, {r0, r1, r2, r3}
-	ldr	ip, .L312+16
+	ldr	ip, .L340+16
 	mov	lr, pc
 	bx	ip
 	cmp	r0, #0
-	ldr	lr, .L312+20
-	ldr	r4, .L312+24
-	ldr	sl, .L312+28
-	beq	.L307
+	ldr	lr, .L340+20
+	ldr	r4, .L340+24
+	ldr	sl, .L340+28
+	beq	.L335
 	ldr	r0, [r4, #0]	@  mapRight
 	ldr	r3, [r6, #0]	@  characterSpriteIndex
-	ldr	r9, .L312+32
+	ldr	r9, .L340+32
 	cmp	r0, r5
 	add	r3, r3, r3, asl #4
 	add	r6, r8, r3, asl #3
@@ -16685,7 +16817,7 @@ MoveMapRight:
 	mov	r3, ip, asr #31
 	add	ip, ip, r3, lsr #29
 	mov	r2, lr, asr #31
-	ldr	r3, .L312+36
+	ldr	r3, .L340+36
 	add	r1, r1, #1
 	mov	ip, ip, asr #3
 	add	r2, lr, r2, lsr #29
@@ -16694,34 +16826,34 @@ MoveMapRight:
 	str	r1, [sl, #0]	@  screenLeft
 	str	r4, [r6, #44]	@  <variable>.mapX
 	str	ip, [r3, #0]	@  prevColumn
-	ldr	r3, .L312+40
+	ldr	r3, .L340+40
 	cmp	r2, ip
 	mov	r0, lr
 	mov	r1, r2
 	str	lr, [r7, #0]	@  screenRight
 	str	r2, [r3, #0]	@  nextColumn
-	ble	.L307
-	ldr	ip, .L312+44
-	ldr	lr, .L312+48
+	ble	.L335
+	ldr	ip, .L340+44
+	ldr	lr, .L340+48
 	ldr	r2, [ip, #0]	@  mapTop
 	ldr	r3, [lr, #0]	@  mapBottom
-	ldr	ip, .L312+52
-	ldr	lr, .L312+56
+	ldr	ip, .L340+52
+	ldr	lr, .L340+56
 	ldr	r4, [ip, #0]	@  map
 	ldr	ip, [lr, #0]	@  bg0map
 	mov	lr, #64
 	stmia	sp, {r4, ip, lr}	@ phole stm
-	ldr	ip, .L312+60
+	ldr	ip, .L340+60
 	mov	lr, pc
 	bx	ip
-	ldr	lr, .L312+40
-	ldr	r3, .L312+44
-	ldr	ip, .L312+48
+	ldr	lr, .L340+40
+	ldr	r3, .L340+44
+	ldr	ip, .L340+48
 	ldr	r1, [lr, #0]	@  nextColumn
 	ldr	r2, [r3, #0]	@  mapTop
-	ldr	lr, .L312+64
+	ldr	lr, .L340+64
 	ldr	r3, [ip, #0]	@  mapBottom
-	ldr	ip, .L312+68
+	ldr	ip, .L340+68
 	ldr	r4, [ip, #0]	@  hitMap
 	ldr	ip, [lr, #0]	@  bg1map
 	mov	lr, #64
@@ -16729,13 +16861,13 @@ MoveMapRight:
 	ldr	r0, [r7, #0]	@  screenRight
 	str	r4, [sp, #0]
 	str	lr, [sp, #8]
-	ldr	ip, .L312+60
+	ldr	ip, .L340+60
 	mov	lr, pc
 	bx	ip
-	b	.L307
-.L313:
+	b	.L335
+.L341:
 	.align	2
-.L312:
+.L340:
 	.word	screenRight
 	.word	characterSpriteIndex
 	.word	sprites
@@ -16772,77 +16904,77 @@ MoveMap:
 	mov	r8, r5	@  moveUp,  moveDown
 	cmp	r0, #3	@  direction
 	ldrls	pc, [pc, r0, asl #2]	@  direction
-	b	.L314
+	b	.L342
 	.p2align 2
-.L332:
-	.word	.L316
-	.word	.L340
-	.word	.L324
-	.word	.L341
-.L316:
-	ldr	r4, .L347
+.L360:
+	.word	.L344
+	.word	.L368
+	.word	.L352
+	.word	.L369
+.L344:
+	ldr	r4, .L375
 	ldr	r0, [r4, #0]	@  screenLeft
 	cmp	r0, #0
-	ble	.L340
-	ldr	r2, .L347+4
-	ldr	ip, .L347+8
+	ble	.L368
+	ldr	r2, .L375+4
+	ldr	ip, .L375+8
 	ldr	r3, [r2, #0]	@  regX
 	ldr	r1, [ip, #0]	@  mapLeft
 	sub	r3, r3, #1
 	cmp	r1, #0
 	str	r3, [r2, #0]	@  regX
-	ble	.L318
-	ldr	r3, .L347+12
+	ble	.L346
+	ldr	r3, .L375+12
 	ldr	r2, [r3, #0]	@  mapRight
 	sub	r1, r1, #1
 	sub	r2, r2, #1
 	str	r1, [ip, #0]	@  mapLeft
 	str	r2, [r3, #0]	@  mapRight
-.L318:
+.L346:
 	sub	ip, r0, #1
-	ldr	lr, .L347+16
+	ldr	lr, .L375+16
 	mov	r2, r0, asr #31
 	mov	r1, ip, asr #31
 	add	r2, r0, r2, lsr #29
-	ldr	r3, .L347+20
+	ldr	r3, .L375+20
 	add	r1, ip, r1, lsr #29
 	ldr	r0, [lr, #0]	@  screenRight
 	mov	r2, r2, asr #3
 	mov	r1, r1, asr #3
 	cmp	r1, r2
 	str	r2, [r3, #0]	@  prevColumn
-	ldr	r3, .L347+24
+	ldr	r3, .L375+24
 	sub	r0, r0, #1
 	movlt	r7, #1	@  moveLeft
 	str	ip, [r4, #0]	@  screenLeft
 	str	r0, [lr, #0]	@  screenRight
 	str	r1, [r3, #0]	@  nextColumn
-.L320:
+.L348:
 	ldr	r4, [lr, #0]	@  screenRight
 	mov	r0, #508
 	add	r0, r0, #2
 	cmp	r4, r0
-	bgt	.L324
-	ldr	r2, .L347+4
-	ldr	ip, .L347+12
+	bgt	.L352
+	ldr	r2, .L375+4
+	ldr	ip, .L375+12
 	ldr	r3, [r2, #0]	@  regX
 	ldr	r1, [ip, #0]	@  mapRight
 	add	r3, r3, #1
 	cmp	r1, r0
 	str	r3, [r2, #0]	@  regX
-	bgt	.L322
-	ldr	r3, .L347+8
+	bgt	.L350
+	ldr	r3, .L375+8
 	ldr	r2, [r3, #0]	@  mapLeft
 	add	r1, r1, #1
 	add	r2, r2, #1
 	str	r1, [ip, #0]	@  mapRight
 	str	r2, [r3, #0]	@  mapLeft
-.L322:
-	ldr	lr, .L347
+.L350:
+	ldr	lr, .L375
 	mov	r0, r4, asr #31
 	ldr	r3, [lr, #0]	@  screenLeft
 	add	ip, r4, #1
-	ldr	r2, .L347+20
+	ldr	r2, .L375+20
 	add	r0, r4, r0, lsr #29
 	mov	r0, r0, asr #3
 	add	r3, r3, #1
@@ -16850,77 +16982,77 @@ MoveMap:
 	add	r1, ip, r1, lsr #29
 	str	r3, [lr, #0]	@  screenLeft
 	str	r0, [r2, #0]	@  prevColumn
-	ldr	r3, .L347+16
-	ldr	r2, .L347+24
+	ldr	r3, .L375+16
+	ldr	r2, .L375+24
 	mov	r1, r1, asr #3
 	cmp	r1, r0
 	str	ip, [r3, #0]	@  screenRight
 	str	r1, [r2, #0]	@  nextColumn
 	movgt	r5, #1	@  moveRight
-.L324:
-	ldr	r4, .L347+28
+.L352:
+	ldr	r4, .L375+28
 	ldr	r0, [r4, #0]	@  screenTop
 	cmp	r0, #0
-	ble	.L341
-	ldr	r2, .L347+32
-	ldr	ip, .L347+36
+	ble	.L369
+	ldr	r2, .L375+32
+	ldr	ip, .L375+36
 	ldr	r3, [r2, #0]	@  regY
 	ldr	r1, [ip, #0]	@  mapTop
 	sub	r3, r3, #1
 	cmp	r1, #0
 	str	r3, [r2, #0]	@  regY
-	ble	.L326
-	ldr	r3, .L347+40
+	ble	.L354
+	ldr	r3, .L375+40
 	ldr	r2, [r3, #0]	@  mapBottom
 	sub	r1, r1, #1
 	sub	r2, r2, #1
 	str	r1, [ip, #0]	@  mapTop
 	str	r2, [r3, #0]	@  mapBottom
-.L326:
+.L354:
 	sub	ip, r0, #1
-	ldr	lr, .L347+44
+	ldr	lr, .L375+44
 	mov	r2, r0, asr #31
 	mov	r1, ip, asr #31
 	add	r2, r0, r2, lsr #29
-	ldr	r3, .L347+48
+	ldr	r3, .L375+48
 	add	r1, ip, r1, lsr #29
 	ldr	r0, [lr, #0]	@  screenBottom
 	mov	r2, r2, asr #3
 	mov	r1, r1, asr #3
 	cmp	r1, r2
 	str	r2, [r3, #0]	@  prevRow
-	ldr	r3, .L347+52
+	ldr	r3, .L375+52
 	sub	r0, r0, #1
 	movlt	r8, #1	@  moveUp
 	str	ip, [r4, #0]	@  screenTop
 	str	r0, [lr, #0]	@  screenBottom
 	str	r1, [r3, #0]	@  nextRow
-.L328:
+.L356:
 	ldr	r4, [lr, #0]	@  screenBottom
 	mov	r0, #508
 	add	r0, r0, #2
 	cmp	r4, r0
-	bgt	.L315
-	ldr	r2, .L347+32
-	ldr	ip, .L347+40
+	bgt	.L343
+	ldr	r2, .L375+32
+	ldr	ip, .L375+40
 	ldr	r3, [r2, #0]	@  regY
 	ldr	r1, [ip, #0]	@  mapBottom
 	add	r3, r3, #1
 	cmp	r1, r0
 	str	r3, [r2, #0]	@  regY
-	bgt	.L330
-	ldr	r3, .L347+36
+	bgt	.L358
+	ldr	r3, .L375+36
 	ldr	r2, [r3, #0]	@  mapTop
 	add	r1, r1, #1
 	add	r2, r2, #1
 	str	r2, [r3, #0]	@  mapTop
 	str	r1, [ip, #0]	@  mapBottom
-.L330:
-	ldr	lr, .L347+28
+.L358:
+	ldr	lr, .L375+28
 	mov	r0, r4, asr #31
 	ldr	r3, [lr, #0]	@  screenTop
 	add	ip, r4, #1
-	ldr	r2, .L347+48
+	ldr	r2, .L375+48
 	add	r0, r4, r0, lsr #29
 	mov	r0, r0, asr #3
 	add	r3, r3, #1
@@ -16928,117 +17060,117 @@ MoveMap:
 	add	r1, ip, r1, lsr #29
 	str	r3, [lr, #0]	@  screenTop
 	str	r0, [r2, #0]	@  prevRow
-	ldr	r3, .L347+44
-	ldr	r2, .L347+52
+	ldr	r3, .L375+44
+	ldr	r2, .L375+52
 	mov	r1, r1, asr #3
 	cmp	r1, r0
 	str	ip, [r3, #0]	@  screenBottom
 	str	r1, [r2, #0]	@  nextRow
 	movgt	r6, #1	@  moveDown
-.L315:
+.L343:
 	cmp	r7, #0	@  moveLeft
-	bne	.L343
-.L334:
+	bne	.L371
+.L362:
 	cmp	r5, #0	@  moveRight
-	bne	.L344
-.L335:
+	bne	.L372
+.L363:
 	cmp	r8, #0	@  moveUp
-	bne	.L345
-.L336:
+	bne	.L373
+.L364:
 	cmp	r6, #0	@  moveDown
-	bne	.L346
-.L314:
+	bne	.L374
+.L342:
 	ldmea	fp, {r4, r5, r6, r7, r8, fp, sp, lr}
 	bx	lr
-.L346:
-	ldr	r3, .L347+44
-	ldr	r2, .L347+52
+.L374:
+	ldr	r3, .L375+44
+	ldr	r2, .L375+52
 	ldr	r0, [r3, #0]	@  direction,  screenBottom
-	ldr	ip, .L347+12
-	ldr	r3, .L347+8
+	ldr	ip, .L375+12
+	ldr	r3, .L375+8
 	ldr	r1, [r2, #0]	@  nextRow
-	ldr	lr, .L347+56
+	ldr	lr, .L375+56
 	ldr	r2, [r3, #0]	@  mapLeft
 	ldr	r3, [ip, #0]	@  mapRight
-	ldr	ip, .L347+60
+	ldr	ip, .L375+60
 	ldr	r4, [lr, #0]	@  map
 	ldr	lr, [ip, #0]	@  bg0map
 	mov	ip, #64
 	stmia	sp, {r4, lr}	@ phole stm
 	str	ip, [sp, #8]
-	ldr	r4, .L347+64
+	ldr	r4, .L375+64
 	mov	lr, pc
 	bx	r4
-	b	.L314
-.L345:
-	ldr	r3, .L347+28
-	ldr	r2, .L347+52
+	b	.L342
+.L373:
+	ldr	r3, .L375+28
+	ldr	r2, .L375+52
 	ldr	r0, [r3, #0]	@  direction,  screenTop
-	ldr	ip, .L347+12
-	ldr	r3, .L347+8
+	ldr	ip, .L375+12
+	ldr	r3, .L375+8
 	ldr	r1, [r2, #0]	@  nextRow
-	ldr	lr, .L347+56
+	ldr	lr, .L375+56
 	ldr	r2, [r3, #0]	@  mapLeft
 	ldr	r3, [ip, #0]	@  mapRight
-	ldr	ip, .L347+60
+	ldr	ip, .L375+60
 	ldr	r4, [lr, #0]	@  map
 	ldr	lr, [ip, #0]	@  bg0map
 	mov	ip, #64
 	stmia	sp, {r4, lr}	@ phole stm
 	str	ip, [sp, #8]
-	ldr	r4, .L347+64
+	ldr	r4, .L375+64
 	mov	lr, pc
 	bx	r4
-	b	.L336
-.L344:
-	ldr	r3, .L347+16
-	ldr	r2, .L347+24
+	b	.L364
+.L372:
+	ldr	r3, .L375+16
+	ldr	r2, .L375+24
 	ldr	r0, [r3, #0]	@  direction,  screenRight
-	ldr	ip, .L347+40
-	ldr	r3, .L347+36
+	ldr	ip, .L375+40
+	ldr	r3, .L375+36
 	ldr	r1, [r2, #0]	@  nextColumn
-	ldr	lr, .L347+56
+	ldr	lr, .L375+56
 	ldr	r2, [r3, #0]	@  mapTop
 	ldr	r3, [ip, #0]	@  mapBottom
-	ldr	ip, .L347+60
+	ldr	ip, .L375+60
 	ldr	r4, [lr, #0]	@  map
 	ldr	lr, [ip, #0]	@  bg0map
 	mov	ip, #64
 	stmia	sp, {r4, lr}	@ phole stm
 	str	ip, [sp, #8]
-	ldr	r4, .L347+68
+	ldr	r4, .L375+68
 	mov	lr, pc
 	bx	r4
-	b	.L335
-.L343:
-	ldr	r3, .L347
-	ldr	r2, .L347+24
+	b	.L363
+.L371:
+	ldr	r3, .L375
+	ldr	r2, .L375+24
 	ldr	r0, [r3, #0]	@  direction,  screenLeft
-	ldr	ip, .L347+40
-	ldr	r3, .L347+36
+	ldr	ip, .L375+40
+	ldr	r3, .L375+36
 	ldr	r1, [r2, #0]	@  nextColumn
-	ldr	lr, .L347+56
+	ldr	lr, .L375+56
 	ldr	r2, [r3, #0]	@  mapTop
 	ldr	r3, [ip, #0]	@  mapBottom
-	ldr	ip, .L347+60
+	ldr	ip, .L375+60
 	ldr	r4, [lr, #0]	@  map
 	ldr	lr, [ip, #0]	@  bg0map
 	mov	ip, #64
 	stmia	sp, {r4, lr}	@ phole stm
 	str	ip, [sp, #8]
-	ldr	r4, .L347+68
+	ldr	r4, .L375+68
 	mov	lr, pc
 	bx	r4
-	b	.L334
-.L341:
-	ldr	lr, .L347+44
-	b	.L328
-.L340:
-	ldr	lr, .L347+16
-	b	.L320
-.L348:
+	b	.L362
+.L369:
+	ldr	lr, .L375+44
+	b	.L356
+.L368:
+	ldr	lr, .L375+16
+	b	.L348
+.L376:
 	.align	2
-.L347:
+.L375:
 	.word	screenLeft
 	.word	regX
 	.word	mapLeft
@@ -17100,7 +17232,7 @@ CanMoveRight:
 	mov	r3, r0
 	cmp	r3, #0
 	mov	r0, r6
-	beq	.L350
+	beq	.L378
 	ldr	r4, [fp, #136]	@  sprite.boundingBox.ysize
 	add	r4, r4, r4, lsr #31
 	mov	r4, r4, asr #1	@  halfYSize
@@ -17113,12 +17245,12 @@ CanMoveRight:
 	cmp	r3, #0
 	mov	r0, r6
 	mov	r1, r5	@  y
-	beq	.L350
+	beq	.L378
 	bl	CanMove
 	cmp	r0, #0
 	movne	r3, #1
 	moveq	r3, #0
-.L350:
+.L378:
 	mov	r0, r3
 	ldmea	fp, {r4, r5, r6, fp, sp, lr}
 	bx	lr
@@ -17147,7 +17279,7 @@ CanMoveLeft:
 	mov	r3, r0
 	cmp	r3, #0
 	mov	r0, r6
-	beq	.L354
+	beq	.L382
 	ldr	r4, [fp, #136]	@  sprite.boundingBox.ysize
 	add	r4, r4, r4, lsr #31
 	mov	r4, r4, asr #1	@  halfYSize
@@ -17160,12 +17292,12 @@ CanMoveLeft:
 	cmp	r3, #0
 	mov	r0, r6
 	mov	r1, r5	@  y
-	beq	.L354
+	beq	.L382
 	bl	CanMove
 	cmp	r0, #0
 	movne	r3, #1
 	moveq	r3, #0
-.L354:
+.L382:
 	mov	r0, r3
 	ldmea	fp, {r4, r5, r6, fp, sp, lr}
 	bx	lr
@@ -17193,7 +17325,7 @@ CanMoveUp:
 	cmp	r0, #0	@  x
 	mov	r1, r5	@  y
 	mov	r3, r0	@  x,  x
-	beq	.L358
+	beq	.L386
 	ldr	r3, [fp, #132]	@  sprite.boundingBox.xsize
 	add	r3, r3, r3, lsr #31
 	mov	r3, r3, asr #1	@  halfXSize
@@ -17205,12 +17337,12 @@ CanMoveUp:
 	cmp	r3, #0	@  x
 	mov	r0, r4	@  x
 	mov	r1, r5	@  y
-	beq	.L358
+	beq	.L386
 	bl	CanMove
 	cmp	r0, #0	@  x
 	movne	r3, #1	@  x
 	moveq	r3, #0	@  x
-.L358:
+.L386:
 	mov	r0, r3	@  x
 	ldmea	fp, {r4, r5, fp, sp, lr}
 	bx	lr
@@ -17240,7 +17372,7 @@ CanMoveDown:
 	cmp	r0, #0	@  x
 	mov	r1, r5	@  y
 	mov	r3, r0	@  x,  x
-	beq	.L362
+	beq	.L390
 	ldr	r3, [fp, #132]	@  sprite.boundingBox.xsize
 	add	r3, r3, r3, lsr #31
 	mov	r3, r3, asr #1	@  halfXSize
@@ -17252,12 +17384,12 @@ CanMoveDown:
 	cmp	r3, #0	@  x
 	mov	r0, r4	@  x
 	mov	r1, r5	@  y
-	beq	.L362
+	beq	.L390
 	bl	CanMove
 	cmp	r0, #0	@  x
 	movne	r3, #1	@  x
 	moveq	r3, #0	@  x
-.L362:
+.L390:
 	mov	r0, r3	@  x
 	ldmea	fp, {r4, r5, fp, sp, lr}
 	bx	lr
@@ -17283,16 +17415,16 @@ RemoveSprite:
 	str	ip, [fp, #8]	@  sprite.y
 	mov	r2, #136
 	str	r3, [fp, #88]	@  sprite.isRemoved
-	ldr	ip, .L367
+	ldr	ip, .L395
 	mov	r4, r0
 	mov	lr, pc
 	bx	ip
 	mov	r0, r4
 	ldmea	fp, {r4, fp, sp, lr}
 	bx	lr
-.L368:
+.L396:
 	.align	2
-.L367:
+.L395:
 	.word	memcpy
 	.size	RemoveSprite, .-RemoveSprite
 	.align	2
@@ -17321,12 +17453,12 @@ CopyColumnToBackground:
 	mov	r0, r3, asr #3	@  column
 	ldr	r5, [sp, #16]	@  dest,  dest
 	ldr	r1, [sp, #20]	@  sourceColumns,  sourceColumns
-	bge	.L376
+	bge	.L404
 	mla	r2, r1, ip, r0	@  sourceColumns,  row,  column
 	ldr	r3, [sp, #12]	@  source,  source
 	mov	r1, r1, asl #1	@  sourceColumns
 	add	r0, r3, r2, asl #1	@  source
-.L374:
+.L402:
 	mov	r3, ip, asr #31	@  row
 	add	r3, ip, r3, lsr #27	@  row
 	bic	r3, r3, #31
@@ -17338,8 +17470,8 @@ CopyColumnToBackground:
 	cmp	ip, lr	@  row,  bottomRow
 	strh	r2, [r3, r5]	@ movhi 	@ * dest
 	add	r0, r0, r1
-	blt	.L374
-.L376:
+	blt	.L402
+.L404:
 	ldmfd	sp!, {r4, r5, lr}
 	bx	lr
 	.size	CopyColumnToBackground, .-CopyColumnToBackground
@@ -17369,12 +17501,12 @@ CopyRowToBackground:
 	rsb	r4, r1, r4	@  copyToRow,  copyToRow
 	ldr	r6, [sp, #16]	@  source,  source
 	ldr	r5, [sp, #20]	@  dest,  dest
-	bge	.L384
+	bge	.L412
 	ldr	r3, [sp, #24]	@  sourceColumns,  sourceColumns
 	mla	r2, r3, r0, ip	@  sourceColumns,  row,  column
 	mov	r1, r4, asl #5	@  copyToRow
 	mov	r0, r2, asl #1
-.L382:
+.L410:
 	mov	r3, ip, asr #31	@  column
 	add	r3, ip, r3, lsr #27	@  column
 	bic	r3, r3, #31
@@ -17386,8 +17518,8 @@ CopyRowToBackground:
 	cmp	ip, lr	@  column,  rightColumn
 	strh	r2, [r3, r5]	@ movhi 	@ * dest
 	add	r0, r0, #2
-	blt	.L382
-.L384:
+	blt	.L410
+.L412:
 	ldmfd	sp!, {r4, r5, r6, lr}
 	bx	lr
 	.size	CopyRowToBackground, .-CopyRowToBackground
@@ -17401,15 +17533,15 @@ Sin_val:
 	@ link register save eliminated.
 	mov	r0, r0, lsr #6	@  angle
 	bic	r0, r0, #1
-	ldr	r3, .L386
+	ldr	r3, .L414
 	mov	r0, r0, asl #22
 	mov	r0, r0, lsr #22
 	ldrsh	r0, [r0, r3]	@  angle,  sin_lut
 	@ lr needed for prologue
 	bx	lr
-.L387:
+.L415:
 	.align	2
-.L386:
+.L414:
 	.word	sin_lut
 	.size	Sin_val, .-Sin_val
 	.align	2
@@ -17423,15 +17555,15 @@ Cos_val:
 	mov	r0, r0, lsr #7	@  angle
 	add	r0, r0, #128
 	mov	r0, r0, asl #23
-	ldr	r3, .L389
+	ldr	r3, .L417
 	mov	r0, r0, lsr #23
 	mov	r0, r0, asl #1
 	ldrsh	r0, [r0, r3]	@  angle,  sin_lut
 	@ lr needed for prologue
 	bx	lr
-.L390:
+.L418:
 	.align	2
-.L389:
+.L417:
 	.word	sin_lut
 	.size	Cos_val, .-Cos_val
 	.comm	buttons, 40, 32
@@ -17443,4 +17575,8 @@ Cos_val:
 	.comm	numberOfSprites, 4, 32
 	.comm	jumpDuration, 4, 32
 	.comm	characterSpriteIndex, 4, 32
+	.comm	characterWalkingRightBBox, 16, 32
+	.comm	characterStandingRightBBox, 16, 32
+	.comm	characterWalkingLeftBBox, 16, 32
+	.comm	characterStandingLeftBBox, 16, 32
 	.ident	"GCC: (GNU) 3.3.2"
