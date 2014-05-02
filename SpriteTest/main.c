@@ -17,7 +17,7 @@
 void Gravity();
 void Jump();
 SpriteHandler Move(Direction, SpriteHandler);
-SpriteHandler RemoveSprite(SpriteHandler);
+void RemoveSprite(SpriteHandler*);
 int GetNextTile(int, int);
 void Shoot(int, int, int, int, Direction);
 void MoveMapRight();
@@ -29,6 +29,8 @@ int CanMoveRight(SpriteHandler);
 int CanMoveLeft(SpriteHandler);
 int CanMoveUp(SpriteHandler);
 int CanMoveDown(SpriteHandler);
+int SpawnEnemy(int, int);
+int HitTest(SpriteHandler, SpriteHandler);
 
 #define MAP_WIDTH 512
 #define MAP_HEIGHT 512
@@ -56,6 +58,7 @@ bool isMoving = false;
 int jumpDuration;
 int walkingCounter = 0;
 int characterSpriteIndex;
+int enemySpriteIndex;
 
 int mapLeft = 0, mapRight = 255, screenLeft = 0, screenRight = 239, nextColumn = 0, prevColumn = 0;
 int mapTop = 0, mapBottom = 255, screenTop = 0, screenBottom = 159, nextRow = 0, prevRow = 0;
@@ -142,6 +145,7 @@ void Initialize()
 	sprites[characterSpriteIndex].dir = RIGHT;
 	numberOfSprites++;
 	
+	enemySpriteIndex = SpawnEnemy(60,0);
 	
 	WaitVBlank();
 	UpdateSpriteMemory(sprites, 128);
@@ -341,6 +345,12 @@ void Update()
 					sprites[i].mapX -= projectileMoveCounter;
 				}
 			}
+			
+			if (HitTest(sprites[i], sprites[enemySpriteIndex]))
+			{
+				RemoveSprite(&sprites[i]);
+				RemoveSprite(&sprites[enemySpriteIndex]);
+			}
 		}		
 	}
 	
@@ -446,14 +456,14 @@ SpriteHandler Move(Direction direction, SpriteHandler sprite)
 				sprite.mapX -= sprite.speed;
 				if (sprite.isProjectile && sprite.x == 0)
 				{
-					sprite = RemoveSprite(sprite);
+					RemoveSprite(&sprite);
 				}
 			}
 			else
 			{
 				if (sprite.isProjectile)
 				{
-					sprite = RemoveSprite(sprite);
+					RemoveSprite(&sprite);
 				}
 			}
 			break;
@@ -469,7 +479,7 @@ SpriteHandler Move(Direction direction, SpriteHandler sprite)
 			{
 				if (sprite.isProjectile)
 				{
-					sprite = RemoveSprite(sprite);
+					RemoveSprite(&sprite);
 				}
 			}
 			break;
@@ -735,13 +745,44 @@ int CanMoveDown(SpriteHandler sprite)
 	return 1;
 }
 
-SpriteHandler RemoveSprite(SpriteHandler sprite)
+void RemoveSprite(SpriteHandler* sprite)
 {
-	sprite.x = 240;
-	sprite.y = 160;
-	sprite.isRemoved = true;
+	sprite->x = 240;
+	sprite->y = 160;
+	sprite->isRemoved = true;
+}
+
+int SpawnEnemy(int mapX, int mapY)
+{
+	int location = GetNextFreePosition(sprites, 128);
+	sprites[location].y = 0;
+	sprites[location].x = 60;
+	sprites[location].mapX = mapX;
+	sprites[location].mapY = mapY;
+	sprites[location].size = SIZE_32;
+	sprites[location].shape = SQUARE;
+	sprites[location].location = SIDEWAYS_SPRITE_LOC;
+	sprites[location].boundingBox = characterStandingRightBBox;
+	sprites[location].noGravity = false;
+	sprites[location].isProjectile = false;
+	sprites[location].speed = 1;
+	sprites[location].isRemoved = false;
+	sprites[location].dir = RIGHT;
+	numberOfSprites++;
 	
-	return sprite;
+	return location;
+}
+
+int HitTest(SpriteHandler sprite1, SpriteHandler sprite2)
+{	
+	if (sprite1.x > sprite2.x && sprite1.x < sprite2.x + sprite2.boundingBox.xsize) 
+	{
+		if (sprite1.y > sprite2.y && sprite1.y < sprite2.y + sprite2.boundingBox.ysize)
+		{
+			return 1;
+		}
+	}
+	return 0;
 }
 
 void CopyColumnToBackground(int column, int copyToColumn, int topRow, int bottomRow, const unsigned short* source, unsigned short* dest, int sourceColumns)
