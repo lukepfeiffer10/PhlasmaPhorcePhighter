@@ -82,6 +82,8 @@ typedef struct SpriteHandler
 	int location;
 	int noGravity;
 	int isProjectile;
+	int isHUD;
+	int isEnemy;
 	int speed;
 	int isRemoved;
 	int explosionCounter;
@@ -116,13 +118,12 @@ void UpdateSpriteMemory(SpriteHandler* sprites, int count)
 	for (i = 0; i < count; i++)
 	{
 		Sprite sprite;
-		sprite.attribute0 = COLOR_256 | sprites[i].shape | sprites[i].y;
-		sprite.attribute1 = sprites[i].size;
+		sprite.attribute0 = COLOR_256 | sprites[i].shape | (sprites[i].y & 0x00FF);
+		sprite.attribute1 = sprites[i].size | (sprites[i].x & 0x01FF);
 		if (sprites[i].hFlip)
 			sprite.attribute1 |= HORIZONTAL_FLIP;
 		if (sprites[i].vFlip)
 			sprite.attribute1 |= VERTICAL_FLIP;
-		sprite.attribute1 |= sprites[i].x;
 		sprite.attribute2 = sprites[i].location;
 		tempSprites[i] = sprite;
 	}
@@ -167,10 +168,10 @@ void UpdateSpriteMemorySpace(SpriteHandler* spriteHandlers, Sprite *sprites, OBJ
 
 
 
-int GetNextFreePosition(SpriteHandler* sprites, int count)
+int GetNextFreePosition(SpriteHandler* sprites, int count, int start)
 {
 	int i;
-	for (i = 1; i < count; i++)
+	for (i = start; i < count; i++)
 	{
 		if (sprites[i].isRemoved)
 			return i;

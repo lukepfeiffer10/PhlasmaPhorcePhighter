@@ -702,70 +702,70 @@ sin_lut:
 	.type	UpdateSpriteMemory, %function
 UpdateSpriteMemory:
 	@ Function supports interworking.
-	@ args = 0, pretend = 0, frame = 0
+	@ args = 0, pretend = 0, frame = 4
 	@ frame_needed = 1, uses_anonymous_args = 0
 	mov	ip, sp
 	stmfd	sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr, pc}
-	mov	r6, #0	@  i
-	mov	r9, sp	@  sprites
-	cmp	r6, r1	@  i,  count
-	sub	sp, sp, r1, asl #3	@  count
 	sub	fp, ip, #4
-	mov	r8, r0	@  sprites
+	sub	sp, sp, #4
+	mov	r6, #0	@  i
+	cmp	r6, r1	@  i,  count
+	str	sp, [fp, #-44]
+	sub	sp, sp, r1, asl #3	@  count
+	mov	r8, r1	@  count
+	mov	sl, r0	@  sprites
 	mov	r5, #0
 	mov	r4, #0	@  sprite
-	mov	sl, sp	@  sprites
+	mov	r9, sp	@  sprites
 	bge	.L32
 	mov	lr, r6	@  i,  i
 	mov	r7, sp	@  sprites
-	mov	r6, r1	@  i,  count
 .L30:
-	add	ip, lr, r8	@  i,  sprites
-	ldrh	r1, [ip, #4]	@  <variable>.y
-	ldrh	r2, [ip, #12]	@  <variable>.shape
-	mov	r3, r4, lsr #16	@  sprite
-	orr	r2, r2, r1
-	orr	r2, r2, #8192
-	mov	r3, r3, asl #16
-	orr	r4, r3, r2	@  sprite
-	mov	r3, r4, asl #16	@  sprite
-	ldrh	r0, [ip, #8]	@  <variable>.size
-	mov	r3, r3, lsr #16
-	orr	r4, r3, r0, asl #16	@  sprite
+	add	ip, lr, sl	@  i,  sprites
+	ldrb	r1, [ip, #4]	@ zero_extendqisi2	@  <variable>.y
+	ldrh	r3, [ip, #12]	@  <variable>.shape
 	mov	r2, r4, lsr #16	@  sprite
-	ldr	r1, [ip, #60]	@  <variable>.hFlip
+	orr	r3, r3, r1
+	orr	r3, r3, #8192
+	ldrh	r1, [lr, sl]	@  <variable>.x
 	mov	r2, r2, asl #16
-	mov	r3, r4, asl #16	@  sprite
-	cmp	r1, #0
-	orr	r2, r2, #268435456
-	orrne	r4, r2, r3, lsr #16	@  sprite
+	orr	r4, r2, r3	@  sprite
+	ldrh	r0, [ip, #8]	@  <variable>.size
+	bic	r1, r1, #65024
+	mov	r2, r4, asl #16	@  sprite
+	ldr	r3, [ip, #60]	@  <variable>.hFlip
+	orr	r0, r0, r1
+	mov	r2, r2, lsr #16
+	orr	r4, r2, r0, asl #16	@  sprite
+	cmp	r3, #0
+	mov	r3, r4, lsr #16	@  sprite
+	mov	r3, r3, asl #16
+	mov	r2, r4, asl #16	@  sprite
+	orr	r3, r3, #268435456
+	orrne	r4, r3, r2, lsr #16	@  sprite
 	mov	r3, r4, lsr #16	@  sprite
 	ldr	r2, [ip, #64]	@  <variable>.vFlip
 	mov	r3, r3, asl #16
-	mov	r1, r4, asl #16	@  sprite
 	cmp	r2, #0
 	orr	r3, r3, #536870912
+	mov	r1, r4, asl #16	@  sprite
 	orrne	r4, r3, r1, lsr #16	@  sprite
-	ldrh	r1, [lr, r8]	@  <variable>.x
-	mov	r2, r4, asl #16	@  sprite
+	ldrh	r2, [ip, #68]	@  <variable>.location
 	mov	r3, r5, lsr #16
-	ldrh	r0, [ip, #68]	@  <variable>.location
-	mov	r2, r2, lsr #16
-	orr	r1, r1, r4, lsr #16	@  sprite
+	add	r6, r6, #1	@  i,  i
 	mov	r3, r3, asl #16
-	orr	r4, r2, r1, asl #16	@  sprite
-	orr	r5, r3, r0
-	subs	r6, r6, #1	@  i,  i
-	add	lr, lr, #136	@  i,  i
+	orr	r5, r3, r2
+	cmp	r6, r8	@  i,  count
+	add	lr, lr, #144	@  i,  i
 	stmia	r7!, {r4-r5}	@  tempSprites,  sprite
-	bne	.L30
+	blt	.L30
 .L32:
-	mov	r0, sl	@  sprites
+	mov	r0, r9	@  sprites
 	mov	r1, #117440512
 	mov	r2, #512
 	mov	r3, #-2147483648
 	bl	DMAFastCopy
-	mov	sp, r9	@  sprites
+	ldr	sp, [fp, #-44]
 	ldmea	fp, {r4, r5, r6, r7, r8, r9, sl, fp, sp, lr}
 	bx	lr
 	.size	UpdateSpriteMemory, .-UpdateSpriteMemory
@@ -799,7 +799,7 @@ UpdateSpriteMemorySpace:
 	add	r0, r4, r5	@  sprites
 	cmp	ip, #1
 	add	r7, r7, #1	@  i,  i
-	add	r6, r6, #136	@  i,  i
+	add	r6, r6, #144	@  i,  i
 	strh	r3, [r4, r5]	@ movhi 	@  <variable>.attribute0
 	strh	r1, [r0, #2]	@ movhi 	@  <variable>.attribute1
 	beq	.L49
@@ -853,19 +853,21 @@ GetNextFreePosition:
 	@ args = 0, pretend = 0, frame = 0
 	@ frame_needed = 0, uses_anonymous_args = 0
 	@ link register save eliminated.
-	mov	r2, #1	@  i
 	cmp	r2, r1	@  i,  count
 	@ lr needed for prologue
+	mov	ip, r2	@  i
 	bge	.L58
-	add	r0, r0, #220	@  sprites
+	add	r2, r2, r2, asl #3	@  i
+	add	r2, r0, r2, asl #4	@  sprites
+	add	r0, r2, #92
 .L56:
 	ldr	r3, [r0, #0]	@  <variable>.isRemoved
 	cmp	r3, #0
-	add	r0, r0, #136
-	movne	r0, r2	@  i,  i
+	add	r0, r0, #144
+	movne	r0, ip	@  i,  i
 	bxne	lr
-	add	r2, r2, #1	@  i,  i
-	cmp	r2, r1	@  i,  count
+	add	ip, ip, #1	@  i,  i
+	cmp	ip, r1	@  i,  count
 	blt	.L56
 .L58:
 	mvn	r0, #0	@  i
@@ -1241,10207 +1243,8 @@ keyReleased:
 	.word	curr_state
 	.word	prev_state
 	.size	keyReleased, .-keyReleased
-	.global	simpleOutside_Palette
-	.section	.rodata
-	.align	1
-	.type	simpleOutside_Palette, %object
-	.size	simpleOutside_Palette, 512
-simpleOutside_Palette:
-	.short	0
-	.short	31540
-	.short	156
-	.short	388
-	.short	404
-	.short	540
-	.short	9100
-	.short	9116
-	.short	31743
-	.short	31
-	.short	32767
-	.short	272
-	.short	644
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.global	simpleOutside_Map
-	.align	1
-	.type	simpleOutside_Map, %object
-	.size	simpleOutside_Map, 8192
-simpleOutside_Map:
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	2
-	.short	2
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	2
-	.short	2
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	3
-	.short	3
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	3
-	.short	3
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	3
-	.short	3
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	4
-	.short	4
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	4
-	.short	4
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	3
-	.short	3
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	4
-	.short	4
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	4
-	.short	4
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	3
-	.short	3
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	4
-	.short	4
-	.short	4
-	.short	4
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	4
-	.short	4
-	.short	4
-	.short	4
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	3
-	.short	3
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	4
-	.short	4
-	.short	4
-	.short	4
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	4
-	.short	4
-	.short	4
-	.short	4
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	3
-	.short	3
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	4
-	.short	4
-	.short	4
-	.short	4
-	.short	4
-	.short	4
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	4
-	.short	4
-	.short	4
-	.short	4
-	.short	4
-	.short	4
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	3
-	.short	3
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	4
-	.short	4
-	.short	4
-	.short	4
-	.short	4
-	.short	4
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	4
-	.short	4
-	.short	4
-	.short	4
-	.short	4
-	.short	4
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	5
-	.short	6
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	10
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	11
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	7
-	.short	8
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.global	simpleOutside_Tiles
-	.type	simpleOutside_Tiles, %object
-	.size	simpleOutside_Tiles, 768
-simpleOutside_Tiles:
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	11
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	5
-	.byte	5
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	5
-	.byte	5
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	5
-	.byte	2
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	2
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	2
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	2
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	2
-	.byte	2
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	2
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	2
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	2
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	2
-	.byte	2
-	.byte	2
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	2
-	.byte	2
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	2
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	2
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	12
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.global	simpleOutsideHitMap_Map
-	.align	1
-	.type	simpleOutsideHitMap_Map, %object
-	.size	simpleOutsideHitMap_Map, 8192
-simpleOutsideHitMap_Map:
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	2
-	.short	2
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	2
-	.short	2
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	2
-	.short	2
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	2
-	.short	2
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	3
-	.short	3
-	.short	3
-	.short	3
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	1
-	.short	1
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	3
-	.short	3
-	.short	3
-	.short	4
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	0
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	2
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	10
-	.short	11
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	5
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	6
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	7
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	13
-	.short	12
-	.short	14
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	8
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.short	9
-	.global	simpleOutsideHitMap_Tiles
-	.type	simpleOutsideHitMap_Tiles, %object
-	.size	simpleOutsideHitMap_Tiles, 960
-simpleOutsideHitMap_Tiles:
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	0
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	8
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	9
-	.byte	2
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	10
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	7
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	6
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	3
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	1
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	5
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	4
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	4
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	5
-	.byte	2
 	.global	philFacingRight3Data
+	.section	.rodata
 	.align	1
 	.type	philFacingRight3Data, %object
 	.size	philFacingRight3Data, 1024
@@ -15368,37 +5171,14386 @@ laserData:
 	.short	0
 	.short	0
 	.short	0
+	.global	bg_Palette
+	.align	1
+	.type	bg_Palette, %object
+	.size	bg_Palette, 512
+bg_Palette:
+	.short	0
+	.short	528
+	.short	25464
+	.short	264
+	.short	268
+	.short	540
+	.short	924
+	.short	8328
+	.short	8456
+	.short	8584
+	.short	8588
+	.short	8712
+	.short	8732
+	.short	8968
+	.short	8984
+	.short	16648
+	.short	16656
+	.short	16904
+	.short	16924
+	.short	24580
+	.short	24584
+	.short	24596
+	.short	24840
+	.short	25244
+	.short	21140
+	.short	31
+	.short	32767
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.global	shipBGscrn_Tiles
+	.type	shipBGscrn_Tiles, %object
+	.size	shipBGscrn_Tiles, 4992
+shipBGscrn_Tiles:
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	20
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	20
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	0
+	.byte	20
+	.byte	13
+	.byte	13
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	0
+	.byte	20
+	.byte	20
+	.byte	13
+	.byte	13
+	.byte	20
+	.byte	13
+	.byte	13
+	.byte	0
+	.byte	20
+	.byte	20
+	.byte	13
+	.byte	13
+	.byte	20
+	.byte	13
+	.byte	13
+	.byte	0
+	.byte	20
+	.byte	20
+	.byte	13
+	.byte	13
+	.byte	13
+	.byte	13
+	.byte	20
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	26
+	.byte	20
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	20
+	.byte	20
+	.byte	13
+	.byte	13
+	.byte	13
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	20
+	.byte	13
+	.byte	13
+	.byte	13
+	.byte	13
+	.byte	20
+	.byte	0
+	.byte	0
+	.byte	13
+	.byte	20
+	.byte	20
+	.byte	13
+	.byte	13
+	.byte	20
+	.byte	0
+	.byte	0
+	.byte	13
+	.byte	20
+	.byte	20
+	.byte	13
+	.byte	13
+	.byte	20
+	.byte	0
+	.byte	0
+	.byte	20
+	.byte	20
+	.byte	13
+	.byte	13
+	.byte	13
+	.byte	20
+	.byte	0
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	6
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	26
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	7
+	.byte	9
+	.byte	10
+	.byte	9
+	.byte	9
+	.byte	9
+	.byte	9
+	.byte	9
+	.byte	26
+	.byte	26
+	.byte	9
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	25
+	.byte	9
+	.byte	26
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	25
+	.byte	9
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	25
+	.byte	9
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	25
+	.byte	9
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	26
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	23
+	.byte	26
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	9
+	.byte	9
+	.byte	9
+	.byte	9
+	.byte	9
+	.byte	10
+	.byte	9
+	.byte	7
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	9
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	26
+	.byte	9
+	.byte	25
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	9
+	.byte	25
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	9
+	.byte	25
+	.byte	25
+	.byte	26
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	9
+	.byte	25
+	.byte	25
+	.byte	0
+	.byte	0
+	.byte	20
+	.byte	20
+	.byte	13
+	.byte	13
+	.byte	20
+	.byte	20
+	.byte	0
+	.byte	0
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	25
+	.byte	25
+	.byte	9
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	9
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	25
+	.byte	9
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	9
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	26
+	.byte	25
+	.byte	25
+	.byte	9
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	25
+	.byte	9
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	25
+	.byte	9
+	.byte	26
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	7
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	9
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	9
+	.byte	25
+	.byte	25
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	9
+	.byte	25
+	.byte	25
+	.byte	26
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	9
+	.byte	25
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	9
+	.byte	25
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	9
+	.byte	25
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	25
+	.byte	26
+	.byte	9
+	.byte	25
+	.byte	25
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	26
+	.byte	7
+	.byte	26
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	6
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	26
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	5
+	.byte	20
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	5
+	.byte	20
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	5
+	.byte	5
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	0
+	.byte	6
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	6
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	6
+	.byte	6
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	6
+	.byte	6
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	6
+	.byte	6
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	6
+	.byte	0
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	14
+	.byte	6
+	.byte	6
+	.byte	6
+	.byte	6
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	6
+	.byte	6
+	.byte	6
+	.byte	6
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	6
+	.byte	6
+	.byte	6
+	.byte	6
+	.byte	0
+	.byte	0
+	.byte	6
+	.byte	6
+	.byte	6
+	.byte	6
+	.byte	14
+	.byte	0
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	6
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	6
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	6
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	6
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	6
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	22
+	.byte	15
+	.byte	15
+	.byte	15
+	.byte	15
+	.byte	15
+	.byte	10
+	.byte	11
+	.byte	21
+	.byte	20
+	.byte	19
+	.byte	19
+	.byte	20
+	.byte	21
+	.byte	15
+	.byte	11
+	.byte	20
+	.byte	19
+	.byte	20
+	.byte	20
+	.byte	16
+	.byte	20
+	.byte	15
+	.byte	11
+	.byte	20
+	.byte	19
+	.byte	20
+	.byte	19
+	.byte	20
+	.byte	20
+	.byte	15
+	.byte	11
+	.byte	20
+	.byte	20
+	.byte	16
+	.byte	20
+	.byte	19
+	.byte	20
+	.byte	15
+	.byte	11
+	.byte	20
+	.byte	19
+	.byte	20
+	.byte	19
+	.byte	19
+	.byte	20
+	.byte	10
+	.byte	11
+	.byte	20
+	.byte	19
+	.byte	19
+	.byte	19
+	.byte	19
+	.byte	20
+	.byte	15
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	16
+	.byte	16
+	.byte	16
+	.byte	16
+	.byte	16
+	.byte	22
+	.byte	11
+	.byte	11
+	.byte	12
+	.byte	5
+	.byte	5
+	.byte	5
+	.byte	12
+	.byte	22
+	.byte	11
+	.byte	11
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	19
+	.byte	20
+	.byte	15
+	.byte	11
+	.byte	11
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	22
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	22
+	.byte	15
+	.byte	15
+	.byte	15
+	.byte	15
+	.byte	15
+	.byte	11
+	.byte	11
+	.byte	21
+	.byte	20
+	.byte	19
+	.byte	19
+	.byte	20
+	.byte	21
+	.byte	11
+	.byte	11
+	.byte	20
+	.byte	19
+	.byte	20
+	.byte	20
+	.byte	16
+	.byte	20
+	.byte	11
+	.byte	11
+	.byte	20
+	.byte	19
+	.byte	20
+	.byte	19
+	.byte	20
+	.byte	20
+	.byte	11
+	.byte	11
+	.byte	20
+	.byte	20
+	.byte	16
+	.byte	20
+	.byte	19
+	.byte	20
+	.byte	11
+	.byte	11
+	.byte	20
+	.byte	19
+	.byte	20
+	.byte	19
+	.byte	19
+	.byte	20
+	.byte	11
+	.byte	11
+	.byte	20
+	.byte	19
+	.byte	19
+	.byte	19
+	.byte	19
+	.byte	20
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	20
+	.byte	5
+	.byte	5
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	20
+	.byte	5
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	20
+	.byte	5
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	20
+	.byte	5
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	5
+	.byte	5
+	.byte	5
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	5
+	.byte	20
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	0
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	0
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	4
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	6
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	6
+	.byte	6
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	6
+	.byte	6
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	6
+	.byte	0
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	6
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	6
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	6
+	.byte	6
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	4
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	6
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	6
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	20
+	.byte	19
+	.byte	19
+	.byte	19
+	.byte	19
+	.byte	20
+	.byte	15
+	.byte	11
+	.byte	20
+	.byte	19
+	.byte	19
+	.byte	19
+	.byte	20
+	.byte	20
+	.byte	15
+	.byte	11
+	.byte	20
+	.byte	19
+	.byte	19
+	.byte	20
+	.byte	22
+	.byte	20
+	.byte	15
+	.byte	11
+	.byte	20
+	.byte	19
+	.byte	19
+	.byte	20
+	.byte	22
+	.byte	20
+	.byte	15
+	.byte	11
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	15
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	20
+	.byte	19
+	.byte	19
+	.byte	19
+	.byte	19
+	.byte	20
+	.byte	11
+	.byte	11
+	.byte	20
+	.byte	19
+	.byte	19
+	.byte	19
+	.byte	20
+	.byte	20
+	.byte	11
+	.byte	11
+	.byte	20
+	.byte	19
+	.byte	19
+	.byte	20
+	.byte	22
+	.byte	20
+	.byte	11
+	.byte	11
+	.byte	20
+	.byte	19
+	.byte	19
+	.byte	20
+	.byte	22
+	.byte	20
+	.byte	11
+	.byte	11
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	2
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	2
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	2
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	2
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	2
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	2
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	20
+	.byte	5
+	.byte	20
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	5
+	.byte	20
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	5
+	.byte	5
+	.byte	5
+	.byte	5
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	5
+	.byte	20
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	5
+	.byte	20
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	0
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	0
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	0
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	6
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	6
+	.byte	6
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	6
+	.byte	6
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	6
+	.byte	0
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	6
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	6
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	6
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	14
+	.byte	6
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	6
+	.byte	11
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	11
+	.byte	20
+	.byte	19
+	.byte	20
+	.byte	20
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	11
+	.byte	24
+	.byte	2
+	.byte	18
+	.byte	17
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	1
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	6
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	20
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	20
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	0
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	0
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	1
+	.byte	24
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	14
+	.byte	6
+	.byte	24
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	6
+	.byte	6
+	.byte	24
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	6
+	.byte	6
+	.byte	24
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	6
+	.byte	0
+	.byte	24
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	6
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	6
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	6
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	6
+	.byte	6
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	6
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	0
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	0
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	3
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	6
+	.byte	9
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	6
+	.byte	9
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	11
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	8
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	24
+	.byte	24
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	10
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.global	shipBGscrn_Map
+	.align	1
+	.type	shipBGscrn_Map, %object
+	.size	shipBGscrn_Map, 4000
+shipBGscrn_Map:
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	2
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	4
+	.short	5
+	.short	5
+	.short	5
+	.short	5
+	.short	5
+	.short	5
+	.short	5
+	.short	5
+	.short	5
+	.short	1028
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	6
+	.short	5
+	.short	5
+	.short	5
+	.short	5
+	.short	5
+	.short	5
+	.short	5
+	.short	5
+	.short	5
+	.short	5
+	.short	1028
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	7
+	.short	0
+	.short	8
+	.short	0
+	.short	0
+	.short	0
+	.short	9
+	.short	0
+	.short	0
+	.short	0
+	.short	1031
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	10
+	.short	11
+	.short	0
+	.short	12
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	13
+	.short	0
+	.short	0
+	.short	1031
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	7
+	.short	0
+	.short	14
+	.short	0
+	.short	15
+	.short	0
+	.short	0
+	.short	0
+	.short	16
+	.short	3084
+	.short	1031
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	10
+	.short	17
+	.short	0
+	.short	0
+	.short	0
+	.short	1032
+	.short	0
+	.short	0
+	.short	0
+	.short	18
+	.short	19
+	.short	1031
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	7
+	.short	0
+	.short	0
+	.short	0
+	.short	20
+	.short	0
+	.short	2060
+	.short	0
+	.short	0
+	.short	0
+	.short	1031
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	10
+	.short	0
+	.short	1038
+	.short	21
+	.short	22
+	.short	0
+	.short	9
+	.short	23
+	.short	24
+	.short	0
+	.short	0
+	.short	1031
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	25
+	.short	26
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	7
+	.short	0
+	.short	2065
+	.short	0
+	.short	0
+	.short	3080
+	.short	27
+	.short	0
+	.short	0
+	.short	0
+	.short	1031
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	28
+	.short	29
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	10
+	.short	1035
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	30
+	.short	31
+	.short	0
+	.short	32
+	.short	1031
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	33
+	.short	34
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	7
+	.short	35
+	.short	35
+	.short	36
+	.short	35
+	.short	35
+	.short	35
+	.short	37
+	.short	36
+	.short	35
+	.short	1031
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	38
+	.short	39
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	10
+	.short	40
+	.short	0
+	.short	41
+	.short	8
+	.short	3081
+	.short	0
+	.short	17
+	.short	0
+	.short	0
+	.short	0
+	.short	1031
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	42
+	.short	43
+	.short	44
+	.short	45
+	.short	46
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	47
+	.short	48
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	28
+	.short	29
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	28
+	.short	29
+	.short	28
+	.short	29
+	.short	28
+	.short	29
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	47
+	.short	48
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	49
+	.short	48
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	28
+	.short	29
+	.short	3
+	.short	50
+	.short	51
+	.short	51
+	.short	51
+	.short	51
+	.short	51
+	.short	51
+	.short	51
+	.short	51
+	.short	51
+	.short	51
+	.short	52
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	53
+	.short	54
+	.short	55
+	.short	56
+	.short	57
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	58
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	38
+	.short	39
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	38
+	.short	39
+	.short	38
+	.short	39
+	.short	38
+	.short	39
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	58
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	59
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	38
+	.short	39
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	60
+	.short	61
+	.short	62
+	.short	63
+	.short	64
+	.short	65
+	.short	66
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	28
+	.short	29
+	.short	28
+	.short	29
+	.short	28
+	.short	29
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	28
+	.short	29
+	.short	28
+	.short	29
+	.short	28
+	.short	29
+	.short	28
+	.short	29
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	28
+	.short	29
+	.short	28
+	.short	29
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	28
+	.short	29
+	.short	28
+	.short	29
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	3
+	.short	67
+	.short	68
+	.short	69
+	.short	70
+	.short	71
+	.short	72
+	.short	73
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	38
+	.short	39
+	.short	38
+	.short	39
+	.short	38
+	.short	39
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	38
+	.short	39
+	.short	38
+	.short	39
+	.short	38
+	.short	39
+	.short	38
+	.short	39
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	38
+	.short	39
+	.short	38
+	.short	39
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	38
+	.short	39
+	.short	38
+	.short	39
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	74
+	.short	75
+	.short	34
+	.short	34
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	76
+	.short	77
+	.short	76
+	.short	76
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.global	shipHitMapscrn_Tiles
+	.type	shipHitMapscrn_Tiles, %object
+	.size	shipHitMapscrn_Tiles, 128
+shipHitMapscrn_Tiles:
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	0
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.byte	1
+	.global	shipHitMapscrn_Map
+	.align	1
+	.type	shipHitMapscrn_Map, %object
+	.size	shipHitMapscrn_Map, 4000
+shipHitMapscrn_Map:
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.short	1
+	.global	hudLifeData
+	.align	1
+	.type	hudLifeData, %object
+	.size	hudLifeData, 128
+hudLifeData:
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	79
+	.short	0
+	.short	79
+	.short	0
+	.short	79
+	.short	0
+	.short	79
+	.short	0
+	.short	79
+	.short	0
+	.short	79
+	.short	0
+	.short	79
+	.short	0
+	.short	79
+	.short	0
+	.short	79
+	.short	0
+	.short	79
+	.short	0
+	.short	79
+	.short	0
+	.short	79
+	.short	0
+	.short	20303
+	.short	79
+	.short	79
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	20303
+	.short	79
+	.short	20303
+	.short	79
+	.short	79
+	.short	0
+	.short	79
+	.short	0
+	.short	79
+	.short	0
+	.short	79
+	.short	0
+	.short	20303
+	.short	0
+	.short	20303
+	.short	0
+	.short	79
+	.short	0
+	.short	79
+	.short	0
+	.short	79
+	.short	0
+	.short	79
+	.short	0
+	.short	79
+	.short	0
+	.short	20303
+	.short	79
+	.global	hudLifePalette
+	.align	1
+	.type	hudLifePalette, %object
+	.size	hudLifePalette, 512
+hudLifePalette:
+	.short	0
+	.short	2
+	.short	1086
+	.short	3194
+	.short	6358
+	.short	7404
+	.short	2131
+	.short	1071
+	.short	1066
+	.short	8478
+	.short	11645
+	.short	17981
+	.short	23261
+	.short	29734
+	.short	23785
+	.short	15625
+	.short	8358
+	.short	20516
+	.short	10242
+	.short	29963
+	.short	30160
+	.short	30292
+	.short	30456
+	.short	2982
+	.short	5864
+	.short	7656
+	.short	6438
+	.short	1701
+	.short	1378
+	.short	8107
+	.short	16305
+	.short	22454
+	.short	3005
+	.short	4921
+	.short	7696
+	.short	6474
+	.short	1717
+	.short	495
+	.short	297
+	.short	7101
+	.short	12221
+	.short	18365
+	.short	23485
+	.short	2556
+	.short	5590
+	.short	7536
+	.short	6410
+	.short	1397
+	.short	1296
+	.short	203
+	.short	5660
+	.short	10876
+	.short	15037
+	.short	23390
+	.short	29784
+	.short	23764
+	.short	16623
+	.short	10474
+	.short	21554
+	.short	16429
+	.short	10248
+	.short	29945
+	.short	30042
+	.short	30267
+	.short	30428
+	.short	27523
+	.short	21190
+	.short	15880
+	.short	10566
+	.short	20130
+	.short	15873
+	.short	11649
+	.short	28585
+	.short	28590
+	.short	29619
+	.short	30648
+	.short	10570
+	.short	19026
+	.short	27482
+	.short	32767
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.global	hudPercentData
+	.align	1
+	.type	hudPercentData, %object
+	.size	hudPercentData, 64
+hudPercentData:
+	.short	20225
+	.short	20303
+	.short	257
+	.short	257
+	.short	20225
+	.short	20225
+	.short	257
+	.short	335
+	.short	20225
+	.short	20303
+	.short	20225
+	.short	257
+	.short	257
+	.short	257
+	.short	335
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.short	257
+	.short	257
+	.short	335
+	.short	20303
+	.short	335
+	.short	20225
+	.short	257
+	.short	335
+	.short	335
+	.short	335
+	.short	257
+	.short	20303
+	.short	335
+	.global	hudPercentPalette
+	.align	1
+	.type	hudPercentPalette, %object
+	.size	hudPercentPalette, 512
+hudPercentPalette:
+	.short	0
+	.short	2
+	.short	1086
+	.short	3194
+	.short	6358
+	.short	7404
+	.short	2131
+	.short	1071
+	.short	1066
+	.short	8478
+	.short	11645
+	.short	17981
+	.short	23261
+	.short	29734
+	.short	23785
+	.short	15625
+	.short	8358
+	.short	20516
+	.short	10242
+	.short	29963
+	.short	30160
+	.short	30292
+	.short	30456
+	.short	2982
+	.short	5864
+	.short	7656
+	.short	6438
+	.short	1701
+	.short	1378
+	.short	8107
+	.short	16305
+	.short	22454
+	.short	3005
+	.short	4921
+	.short	7696
+	.short	6474
+	.short	1717
+	.short	495
+	.short	297
+	.short	7101
+	.short	12221
+	.short	18365
+	.short	23485
+	.short	2556
+	.short	5590
+	.short	7536
+	.short	6410
+	.short	1397
+	.short	1296
+	.short	203
+	.short	5660
+	.short	10876
+	.short	15037
+	.short	23390
+	.short	29784
+	.short	23764
+	.short	16623
+	.short	10474
+	.short	21554
+	.short	16429
+	.short	10248
+	.short	29945
+	.short	30042
+	.short	30267
+	.short	30428
+	.short	27523
+	.short	21190
+	.short	15880
+	.short	10566
+	.short	20130
+	.short	15873
+	.short	11649
+	.short	28585
+	.short	28590
+	.short	29619
+	.short	30648
+	.short	10570
+	.short	19026
+	.short	27482
+	.short	32767
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.global	hud0Data
+	.align	1
+	.type	hud0Data, %object
+	.size	hud0Data, 64
+hud0Data:
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	335
+	.short	257
+	.short	257
+	.short	335
+	.short	20225
+	.short	257
+	.short	257
+	.short	335
+	.short	20225
+	.short	257
+	.short	257
+	.short	335
+	.short	20225
+	.short	257
+	.short	257
+	.short	335
+	.short	20225
+	.short	257
+	.short	257
+	.short	335
+	.short	20225
+	.short	257
+	.short	257
+	.short	20225
+	.short	335
+	.short	257
+	.global	hud0Palette
+	.align	1
+	.type	hud0Palette, %object
+	.size	hud0Palette, 512
+hud0Palette:
+	.short	0
+	.short	2
+	.short	1086
+	.short	3194
+	.short	6358
+	.short	7404
+	.short	2131
+	.short	1071
+	.short	1066
+	.short	8478
+	.short	11645
+	.short	17981
+	.short	23261
+	.short	29734
+	.short	23785
+	.short	15625
+	.short	8358
+	.short	20516
+	.short	10242
+	.short	29963
+	.short	30160
+	.short	30292
+	.short	30456
+	.short	2982
+	.short	5864
+	.short	7656
+	.short	6438
+	.short	1701
+	.short	1378
+	.short	8107
+	.short	16305
+	.short	22454
+	.short	3005
+	.short	4921
+	.short	7696
+	.short	6474
+	.short	1717
+	.short	495
+	.short	297
+	.short	7101
+	.short	12221
+	.short	18365
+	.short	23485
+	.short	2556
+	.short	5590
+	.short	7536
+	.short	6410
+	.short	1397
+	.short	1296
+	.short	203
+	.short	5660
+	.short	10876
+	.short	15037
+	.short	23390
+	.short	29784
+	.short	23764
+	.short	16623
+	.short	10474
+	.short	21554
+	.short	16429
+	.short	10248
+	.short	29945
+	.short	30042
+	.short	30267
+	.short	30428
+	.short	27523
+	.short	21190
+	.short	15880
+	.short	10566
+	.short	20130
+	.short	15873
+	.short	11649
+	.short	28585
+	.short	28590
+	.short	29619
+	.short	30648
+	.short	10570
+	.short	19026
+	.short	27482
+	.short	32767
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.global	hud1Data
+	.align	1
+	.type	hud1Data, %object
+	.size	hud1Data, 64
+hud1Data:
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	335
+	.short	257
+	.short	257
+	.short	20225
+	.short	335
+	.short	257
+	.short	257
+	.short	257
+	.short	335
+	.short	257
+	.short	257
+	.short	257
+	.short	335
+	.short	257
+	.short	257
+	.short	257
+	.short	335
+	.short	257
+	.short	257
+	.short	257
+	.short	335
+	.short	257
+	.short	257
+	.short	20225
+	.short	20303
+	.short	257
+	.global	hud1Palette
+	.align	1
+	.type	hud1Palette, %object
+	.size	hud1Palette, 512
+hud1Palette:
+	.short	0
+	.short	2
+	.short	1086
+	.short	3194
+	.short	6358
+	.short	7404
+	.short	2131
+	.short	1071
+	.short	1066
+	.short	8478
+	.short	11645
+	.short	17981
+	.short	23261
+	.short	29734
+	.short	23785
+	.short	15625
+	.short	8358
+	.short	20516
+	.short	10242
+	.short	29963
+	.short	30160
+	.short	30292
+	.short	30456
+	.short	2982
+	.short	5864
+	.short	7656
+	.short	6438
+	.short	1701
+	.short	1378
+	.short	8107
+	.short	16305
+	.short	22454
+	.short	3005
+	.short	4921
+	.short	7696
+	.short	6474
+	.short	1717
+	.short	495
+	.short	297
+	.short	7101
+	.short	12221
+	.short	18365
+	.short	23485
+	.short	2556
+	.short	5590
+	.short	7536
+	.short	6410
+	.short	1397
+	.short	1296
+	.short	203
+	.short	5660
+	.short	10876
+	.short	15037
+	.short	23390
+	.short	29784
+	.short	23764
+	.short	16623
+	.short	10474
+	.short	21554
+	.short	16429
+	.short	10248
+	.short	29945
+	.short	30042
+	.short	30267
+	.short	30428
+	.short	27523
+	.short	21190
+	.short	15880
+	.short	10566
+	.short	20130
+	.short	15873
+	.short	11649
+	.short	28585
+	.short	28590
+	.short	29619
+	.short	30648
+	.short	10570
+	.short	19026
+	.short	27482
+	.short	32767
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.global	hud2Data
+	.align	1
+	.type	hud2Data, %object
+	.size	hud2Data, 64
+hud2Data:
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	335
+	.short	257
+	.short	257
+	.short	335
+	.short	20225
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.short	257
+	.short	257
+	.short	335
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.short	257
+	.short	257
+	.short	335
+	.short	257
+	.short	257
+	.short	257
+	.short	20303
+	.short	20303
+	.short	257
+	.global	hud2Palette
+	.align	1
+	.type	hud2Palette, %object
+	.size	hud2Palette, 512
+hud2Palette:
+	.short	0
+	.short	2
+	.short	1086
+	.short	3194
+	.short	6358
+	.short	7404
+	.short	2131
+	.short	1071
+	.short	1066
+	.short	8478
+	.short	11645
+	.short	17981
+	.short	23261
+	.short	29734
+	.short	23785
+	.short	15625
+	.short	8358
+	.short	20516
+	.short	10242
+	.short	29963
+	.short	30160
+	.short	30292
+	.short	30456
+	.short	2982
+	.short	5864
+	.short	7656
+	.short	6438
+	.short	1701
+	.short	1378
+	.short	8107
+	.short	16305
+	.short	22454
+	.short	3005
+	.short	4921
+	.short	7696
+	.short	6474
+	.short	1717
+	.short	495
+	.short	297
+	.short	7101
+	.short	12221
+	.short	18365
+	.short	23485
+	.short	2556
+	.short	5590
+	.short	7536
+	.short	6410
+	.short	1397
+	.short	1296
+	.short	203
+	.short	5660
+	.short	10876
+	.short	15037
+	.short	23390
+	.short	29784
+	.short	23764
+	.short	16623
+	.short	10474
+	.short	21554
+	.short	16429
+	.short	10248
+	.short	29945
+	.short	30042
+	.short	30267
+	.short	30428
+	.short	27523
+	.short	21190
+	.short	15880
+	.short	10566
+	.short	20130
+	.short	15873
+	.short	11649
+	.short	28585
+	.short	28590
+	.short	29619
+	.short	30648
+	.short	10570
+	.short	19026
+	.short	27482
+	.short	32767
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.global	hud3Data
+	.align	1
+	.type	hud3Data, %object
+	.size	hud3Data, 64
+hud3Data:
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	20303
+	.short	335
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.short	257
+	.short	20225
+	.short	335
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.short	257
+	.short	20303
+	.short	335
+	.short	257
+	.global	hud3Palette
+	.align	1
+	.type	hud3Palette, %object
+	.size	hud3Palette, 512
+hud3Palette:
+	.short	0
+	.short	2
+	.short	1086
+	.short	3194
+	.short	6358
+	.short	7404
+	.short	2131
+	.short	1071
+	.short	1066
+	.short	8478
+	.short	11645
+	.short	17981
+	.short	23261
+	.short	29734
+	.short	23785
+	.short	15625
+	.short	8358
+	.short	20516
+	.short	10242
+	.short	29963
+	.short	30160
+	.short	30292
+	.short	30456
+	.short	2982
+	.short	5864
+	.short	7656
+	.short	6438
+	.short	1701
+	.short	1378
+	.short	8107
+	.short	16305
+	.short	22454
+	.short	3005
+	.short	4921
+	.short	7696
+	.short	6474
+	.short	1717
+	.short	495
+	.short	297
+	.short	7101
+	.short	12221
+	.short	18365
+	.short	23485
+	.short	2556
+	.short	5590
+	.short	7536
+	.short	6410
+	.short	1397
+	.short	1296
+	.short	203
+	.short	5660
+	.short	10876
+	.short	15037
+	.short	23390
+	.short	29784
+	.short	23764
+	.short	16623
+	.short	10474
+	.short	21554
+	.short	16429
+	.short	10248
+	.short	29945
+	.short	30042
+	.short	30267
+	.short	30428
+	.short	27523
+	.short	21190
+	.short	15880
+	.short	10566
+	.short	20130
+	.short	15873
+	.short	11649
+	.short	28585
+	.short	28590
+	.short	29619
+	.short	30648
+	.short	10570
+	.short	19026
+	.short	27482
+	.short	32767
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.global	hud4Data
+	.align	1
+	.type	hud4Data, %object
+	.size	hud4Data, 64
+hud4Data:
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.short	257
+	.short	335
+	.short	20225
+	.short	257
+	.short	257
+	.short	335
+	.short	20225
+	.short	257
+	.short	257
+	.short	20303
+	.short	20303
+	.short	335
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.global	hud4Palette
+	.align	1
+	.type	hud4Palette, %object
+	.size	hud4Palette, 512
+hud4Palette:
+	.short	0
+	.short	2
+	.short	1086
+	.short	3194
+	.short	6358
+	.short	7404
+	.short	2131
+	.short	1071
+	.short	1066
+	.short	8478
+	.short	11645
+	.short	17981
+	.short	23261
+	.short	29734
+	.short	23785
+	.short	15625
+	.short	8358
+	.short	20516
+	.short	10242
+	.short	29963
+	.short	30160
+	.short	30292
+	.short	30456
+	.short	2982
+	.short	5864
+	.short	7656
+	.short	6438
+	.short	1701
+	.short	1378
+	.short	8107
+	.short	16305
+	.short	22454
+	.short	3005
+	.short	4921
+	.short	7696
+	.short	6474
+	.short	1717
+	.short	495
+	.short	297
+	.short	7101
+	.short	12221
+	.short	18365
+	.short	23485
+	.short	2556
+	.short	5590
+	.short	7536
+	.short	6410
+	.short	1397
+	.short	1296
+	.short	203
+	.short	5660
+	.short	10876
+	.short	15037
+	.short	23390
+	.short	29784
+	.short	23764
+	.short	16623
+	.short	10474
+	.short	21554
+	.short	16429
+	.short	10248
+	.short	29945
+	.short	30042
+	.short	30267
+	.short	30428
+	.short	27523
+	.short	21190
+	.short	15880
+	.short	10566
+	.short	20130
+	.short	15873
+	.short	11649
+	.short	28585
+	.short	28590
+	.short	29619
+	.short	30648
+	.short	10570
+	.short	19026
+	.short	27482
+	.short	32767
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.global	hud5Data
+	.align	1
+	.type	hud5Data, %object
+	.size	hud5Data, 64
+hud5Data:
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	20303
+	.short	20303
+	.short	257
+	.short	257
+	.short	335
+	.short	257
+	.short	257
+	.short	257
+	.short	335
+	.short	257
+	.short	257
+	.short	257
+	.short	20303
+	.short	335
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.short	257
+	.short	20303
+	.short	335
+	.short	257
+	.global	hud5Palette
+	.align	1
+	.type	hud5Palette, %object
+	.size	hud5Palette, 512
+hud5Palette:
+	.short	0
+	.short	2
+	.short	1086
+	.short	3194
+	.short	6358
+	.short	7404
+	.short	2131
+	.short	1071
+	.short	1066
+	.short	8478
+	.short	11645
+	.short	17981
+	.short	23261
+	.short	29734
+	.short	23785
+	.short	15625
+	.short	8358
+	.short	20516
+	.short	10242
+	.short	29963
+	.short	30160
+	.short	30292
+	.short	30456
+	.short	2982
+	.short	5864
+	.short	7656
+	.short	6438
+	.short	1701
+	.short	1378
+	.short	8107
+	.short	16305
+	.short	22454
+	.short	3005
+	.short	4921
+	.short	7696
+	.short	6474
+	.short	1717
+	.short	495
+	.short	297
+	.short	7101
+	.short	12221
+	.short	18365
+	.short	23485
+	.short	2556
+	.short	5590
+	.short	7536
+	.short	6410
+	.short	1397
+	.short	1296
+	.short	203
+	.short	5660
+	.short	10876
+	.short	15037
+	.short	23390
+	.short	29784
+	.short	23764
+	.short	16623
+	.short	10474
+	.short	21554
+	.short	16429
+	.short	10248
+	.short	29945
+	.short	30042
+	.short	30267
+	.short	30428
+	.short	27523
+	.short	21190
+	.short	15880
+	.short	10566
+	.short	20130
+	.short	15873
+	.short	11649
+	.short	28585
+	.short	28590
+	.short	29619
+	.short	30648
+	.short	10570
+	.short	19026
+	.short	27482
+	.short	32767
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.global	hud6Data
+	.align	1
+	.type	hud6Data, %object
+	.size	hud6Data, 64
+hud6Data:
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	20303
+	.short	20303
+	.short	257
+	.short	257
+	.short	335
+	.short	257
+	.short	257
+	.short	257
+	.short	335
+	.short	257
+	.short	257
+	.short	257
+	.short	20303
+	.short	20303
+	.short	257
+	.short	257
+	.short	335
+	.short	20225
+	.short	257
+	.short	257
+	.short	335
+	.short	20225
+	.short	257
+	.short	257
+	.short	20303
+	.short	20303
+	.short	257
+	.global	hud6Palette
+	.align	1
+	.type	hud6Palette, %object
+	.size	hud6Palette, 512
+hud6Palette:
+	.short	0
+	.short	2
+	.short	1086
+	.short	3194
+	.short	6358
+	.short	7404
+	.short	2131
+	.short	1071
+	.short	1066
+	.short	8478
+	.short	11645
+	.short	17981
+	.short	23261
+	.short	29734
+	.short	23785
+	.short	15625
+	.short	8358
+	.short	20516
+	.short	10242
+	.short	29963
+	.short	30160
+	.short	30292
+	.short	30456
+	.short	2982
+	.short	5864
+	.short	7656
+	.short	6438
+	.short	1701
+	.short	1378
+	.short	8107
+	.short	16305
+	.short	22454
+	.short	3005
+	.short	4921
+	.short	7696
+	.short	6474
+	.short	1717
+	.short	495
+	.short	297
+	.short	7101
+	.short	12221
+	.short	18365
+	.short	23485
+	.short	2556
+	.short	5590
+	.short	7536
+	.short	6410
+	.short	1397
+	.short	1296
+	.short	203
+	.short	5660
+	.short	10876
+	.short	15037
+	.short	23390
+	.short	29784
+	.short	23764
+	.short	16623
+	.short	10474
+	.short	21554
+	.short	16429
+	.short	10248
+	.short	29945
+	.short	30042
+	.short	30267
+	.short	30428
+	.short	27523
+	.short	21190
+	.short	15880
+	.short	10566
+	.short	20130
+	.short	15873
+	.short	11649
+	.short	28585
+	.short	28590
+	.short	29619
+	.short	30648
+	.short	10570
+	.short	19026
+	.short	27482
+	.short	32767
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.global	hud7Data
+	.align	1
+	.type	hud7Data, %object
+	.size	hud7Data, 64
+hud7Data:
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	20303
+	.short	20303
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.global	hud7Palette
+	.align	1
+	.type	hud7Palette, %object
+	.size	hud7Palette, 512
+hud7Palette:
+	.short	0
+	.short	2
+	.short	1086
+	.short	3194
+	.short	6358
+	.short	7404
+	.short	2131
+	.short	1071
+	.short	1066
+	.short	8478
+	.short	11645
+	.short	17981
+	.short	23261
+	.short	29734
+	.short	23785
+	.short	15625
+	.short	8358
+	.short	20516
+	.short	10242
+	.short	29963
+	.short	30160
+	.short	30292
+	.short	30456
+	.short	2982
+	.short	5864
+	.short	7656
+	.short	6438
+	.short	1701
+	.short	1378
+	.short	8107
+	.short	16305
+	.short	22454
+	.short	3005
+	.short	4921
+	.short	7696
+	.short	6474
+	.short	1717
+	.short	495
+	.short	297
+	.short	7101
+	.short	12221
+	.short	18365
+	.short	23485
+	.short	2556
+	.short	5590
+	.short	7536
+	.short	6410
+	.short	1397
+	.short	1296
+	.short	203
+	.short	5660
+	.short	10876
+	.short	15037
+	.short	23390
+	.short	29784
+	.short	23764
+	.short	16623
+	.short	10474
+	.short	21554
+	.short	16429
+	.short	10248
+	.short	29945
+	.short	30042
+	.short	30267
+	.short	30428
+	.short	27523
+	.short	21190
+	.short	15880
+	.short	10566
+	.short	20130
+	.short	15873
+	.short	11649
+	.short	28585
+	.short	28590
+	.short	29619
+	.short	30648
+	.short	10570
+	.short	19026
+	.short	27482
+	.short	32767
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.global	hud8Data
+	.align	1
+	.type	hud8Data, %object
+	.size	hud8Data, 64
+hud8Data:
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	335
+	.short	257
+	.short	257
+	.short	335
+	.short	20225
+	.short	257
+	.short	257
+	.short	335
+	.short	20225
+	.short	257
+	.short	257
+	.short	20225
+	.short	335
+	.short	257
+	.short	257
+	.short	335
+	.short	20225
+	.short	257
+	.short	257
+	.short	335
+	.short	20225
+	.short	257
+	.short	257
+	.short	20225
+	.short	335
+	.short	257
+	.global	hud8Palette
+	.align	1
+	.type	hud8Palette, %object
+	.size	hud8Palette, 512
+hud8Palette:
+	.short	0
+	.short	2
+	.short	1086
+	.short	3194
+	.short	6358
+	.short	7404
+	.short	2131
+	.short	1071
+	.short	1066
+	.short	8478
+	.short	11645
+	.short	17981
+	.short	23261
+	.short	29734
+	.short	23785
+	.short	15625
+	.short	8358
+	.short	20516
+	.short	10242
+	.short	29963
+	.short	30160
+	.short	30292
+	.short	30456
+	.short	2982
+	.short	5864
+	.short	7656
+	.short	6438
+	.short	1701
+	.short	1378
+	.short	8107
+	.short	16305
+	.short	22454
+	.short	3005
+	.short	4921
+	.short	7696
+	.short	6474
+	.short	1717
+	.short	495
+	.short	297
+	.short	7101
+	.short	12221
+	.short	18365
+	.short	23485
+	.short	2556
+	.short	5590
+	.short	7536
+	.short	6410
+	.short	1397
+	.short	1296
+	.short	203
+	.short	5660
+	.short	10876
+	.short	15037
+	.short	23390
+	.short	29784
+	.short	23764
+	.short	16623
+	.short	10474
+	.short	21554
+	.short	16429
+	.short	10248
+	.short	29945
+	.short	30042
+	.short	30267
+	.short	30428
+	.short	27523
+	.short	21190
+	.short	15880
+	.short	10566
+	.short	20130
+	.short	15873
+	.short	11649
+	.short	28585
+	.short	28590
+	.short	29619
+	.short	30648
+	.short	10570
+	.short	19026
+	.short	27482
+	.short	32767
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.global	hud9Data
+	.align	1
+	.type	hud9Data, %object
+	.size	hud9Data, 64
+hud9Data:
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	257
+	.short	20303
+	.short	20303
+	.short	257
+	.short	257
+	.short	335
+	.short	20225
+	.short	257
+	.short	257
+	.short	335
+	.short	20225
+	.short	257
+	.short	257
+	.short	20303
+	.short	20303
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.short	257
+	.short	257
+	.short	20225
+	.short	257
+	.global	hud9Palette
+	.align	1
+	.type	hud9Palette, %object
+	.size	hud9Palette, 512
+hud9Palette:
+	.short	0
+	.short	2
+	.short	1086
+	.short	3194
+	.short	6358
+	.short	7404
+	.short	2131
+	.short	1071
+	.short	1066
+	.short	8478
+	.short	11645
+	.short	17981
+	.short	23261
+	.short	29734
+	.short	23785
+	.short	15625
+	.short	8358
+	.short	20516
+	.short	10242
+	.short	29963
+	.short	30160
+	.short	30292
+	.short	30456
+	.short	2982
+	.short	5864
+	.short	7656
+	.short	6438
+	.short	1701
+	.short	1378
+	.short	8107
+	.short	16305
+	.short	22454
+	.short	3005
+	.short	4921
+	.short	7696
+	.short	6474
+	.short	1717
+	.short	495
+	.short	297
+	.short	7101
+	.short	12221
+	.short	18365
+	.short	23485
+	.short	2556
+	.short	5590
+	.short	7536
+	.short	6410
+	.short	1397
+	.short	1296
+	.short	203
+	.short	5660
+	.short	10876
+	.short	15037
+	.short	23390
+	.short	29784
+	.short	23764
+	.short	16623
+	.short	10474
+	.short	21554
+	.short	16429
+	.short	10248
+	.short	29945
+	.short	30042
+	.short	30267
+	.short	30428
+	.short	27523
+	.short	21190
+	.short	15880
+	.short	10566
+	.short	20130
+	.short	15873
+	.short	11649
+	.short	28585
+	.short	28590
+	.short	29619
+	.short	30648
+	.short	10570
+	.short	19026
+	.short	27482
+	.short	32767
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.global	laserPurpleData
+	.align	1
+	.type	laserPurpleData, %object
+	.size	laserPurpleData, 64
+laserPurpleData:
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	15677
+	.short	15677
+	.short	15677
+	.short	15677
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.global	laserPurplePalette
+	.align	1
+	.type	laserPurplePalette, %object
+	.size	laserPurplePalette, 512
+laserPurplePalette:
+	.short	0
+	.short	2
+	.short	1086
+	.short	3194
+	.short	6358
+	.short	7404
+	.short	2131
+	.short	1071
+	.short	1066
+	.short	8478
+	.short	11645
+	.short	17981
+	.short	23261
+	.short	29734
+	.short	23785
+	.short	15625
+	.short	8358
+	.short	20516
+	.short	10242
+	.short	29963
+	.short	30160
+	.short	30292
+	.short	30456
+	.short	2982
+	.short	5864
+	.short	7656
+	.short	6438
+	.short	1701
+	.short	1378
+	.short	8107
+	.short	16305
+	.short	22454
+	.short	3005
+	.short	4921
+	.short	7696
+	.short	6474
+	.short	1717
+	.short	495
+	.short	297
+	.short	7101
+	.short	12221
+	.short	18365
+	.short	23485
+	.short	2556
+	.short	5590
+	.short	7536
+	.short	6410
+	.short	1397
+	.short	1296
+	.short	203
+	.short	5660
+	.short	10876
+	.short	15037
+	.short	23390
+	.short	29784
+	.short	23764
+	.short	16623
+	.short	10474
+	.short	21554
+	.short	16429
+	.short	10248
+	.short	29945
+	.short	30042
+	.short	30267
+	.short	30428
+	.short	27523
+	.short	21190
+	.short	15880
+	.short	10566
+	.short	20130
+	.short	15873
+	.short	11649
+	.short	28585
+	.short	28590
+	.short	29619
+	.short	30648
+	.short	10570
+	.short	19026
+	.short	27482
+	.short	32767
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.global	enemyData
+	.align	1
+	.type	enemyData, %object
+	.size	enemyData, 512
+enemyData:
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	512
+	.short	0
+	.short	0
+	.short	0
+	.short	514
+	.short	0
+	.short	0
+	.short	7168
+	.short	7196
+	.short	0
+	.short	0
+	.short	7168
+	.short	7196
+	.short	0
+	.short	0
+	.short	256
+	.short	7247
+	.short	0
+	.short	0
+	.short	7168
+	.short	7196
+	.short	512
+	.short	514
+	.short	0
+	.short	0
+	.short	2
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	514
+	.short	0
+	.short	0
+	.short	512
+	.short	0
+	.short	0
+	.short	0
+	.short	7196
+	.short	540
+	.short	2
+	.short	0
+	.short	7196
+	.short	28
+	.short	512
+	.short	0
+	.short	20225
+	.short	540
+	.short	0
+	.short	0
+	.short	7196
+	.short	28
+	.short	2
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	7196
+	.short	0
+	.short	0
+	.short	0
+	.short	7168
+	.short	0
+	.short	0
+	.short	0
+	.short	7200
+	.short	0
+	.short	0
+	.short	8192
+	.short	8224
+	.short	0
+	.short	0
+	.short	8192
+	.short	8224
+	.short	0
+	.short	0
+	.short	8192
+	.short	8224
+	.short	19456
+	.short	19789
+	.short	19789
+	.short	19789
+	.short	0
+	.short	0
+	.short	19789
+	.short	19789
+	.short	7196
+	.short	0
+	.short	512
+	.short	0
+	.short	7196
+	.short	0
+	.short	0
+	.short	0
+	.short	7196
+	.short	32
+	.short	0
+	.short	0
+	.short	8224
+	.short	8224
+	.short	0
+	.short	0
+	.short	7200
+	.short	8220
+	.short	0
+	.short	0
+	.short	8224
+	.short	7196
+	.short	0
+	.short	0
+	.short	19789
+	.short	7245
+	.short	19740
+	.short	7168
+	.short	19789
+	.short	7196
+	.short	19789
+	.short	28
+	.short	0
+	.short	0
+	.short	0
+	.short	7245
+	.short	0
+	.short	0
+	.short	0
+	.short	8224
+	.short	0
+	.short	0
+	.short	0
+	.short	7168
+	.short	0
+	.short	0
+	.short	0
+	.short	8224
+	.short	0
+	.short	0
+	.short	8192
+	.short	8224
+	.short	0
+	.short	0
+	.short	8192
+	.short	8224
+	.short	0
+	.short	0
+	.short	8192
+	.short	8224
+	.short	0
+	.short	0
+	.short	8192
+	.short	32
+	.short	7196
+	.short	8220
+	.short	19712
+	.short	28
+	.short	8224
+	.short	8224
+	.short	0
+	.short	28
+	.short	7196
+	.short	28
+	.short	7168
+	.short	28
+	.short	8224
+	.short	8224
+	.short	7168
+	.short	0
+	.short	8224
+	.short	8224
+	.short	7196
+	.short	0
+	.short	8224
+	.short	8224
+	.short	28
+	.short	0
+	.short	8192
+	.short	32
+	.short	0
+	.short	0
+	.short	0
+	.short	32
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	8224
+	.short	0
+	.short	0
+	.short	0
+	.short	8192
+	.short	0
+	.short	0
+	.short	0
+	.short	7196
+	.short	0
+	.short	0
+	.short	7168
+	.short	28
+	.short	0
+	.short	0
+	.short	7168
+	.short	0
+	.short	0
+	.short	0
+	.short	7168
+	.short	0
+	.short	0
+	.short	0
+	.short	19712
+	.short	0
+	.short	0
+	.short	19712
+	.short	19789
+	.short	77
+	.short	0
+	.short	8224
+	.short	0
+	.short	0
+	.short	32
+	.short	8192
+	.short	32
+	.short	0
+	.short	0
+	.short	7196
+	.short	0
+	.short	0
+	.short	7168
+	.short	28
+	.short	0
+	.short	0
+	.short	7168
+	.short	0
+	.short	0
+	.short	0
+	.short	7168
+	.short	0
+	.short	0
+	.short	0
+	.short	19712
+	.short	0
+	.short	0
+	.short	0
+	.short	19789
+	.short	19789
+	.short	0
+	.short	0
+	.global	enemyPalette
+	.align	1
+	.type	enemyPalette, %object
+	.size	enemyPalette, 512
+enemyPalette:
+	.short	0
+	.short	2
+	.short	1086
+	.short	3194
+	.short	6358
+	.short	7404
+	.short	2131
+	.short	1071
+	.short	1066
+	.short	8478
+	.short	11645
+	.short	17981
+	.short	23261
+	.short	29734
+	.short	23785
+	.short	15625
+	.short	8358
+	.short	20516
+	.short	10242
+	.short	29963
+	.short	30160
+	.short	30292
+	.short	30456
+	.short	2982
+	.short	5864
+	.short	7656
+	.short	6438
+	.short	1701
+	.short	1378
+	.short	8107
+	.short	16305
+	.short	22454
+	.short	3005
+	.short	4921
+	.short	7696
+	.short	6474
+	.short	1717
+	.short	495
+	.short	297
+	.short	7101
+	.short	12221
+	.short	18365
+	.short	23485
+	.short	2556
+	.short	5590
+	.short	7536
+	.short	6410
+	.short	1397
+	.short	1296
+	.short	203
+	.short	5660
+	.short	10876
+	.short	15037
+	.short	23390
+	.short	29784
+	.short	23764
+	.short	16623
+	.short	10474
+	.short	21554
+	.short	16429
+	.short	10248
+	.short	29945
+	.short	30042
+	.short	30267
+	.short	30428
+	.short	27523
+	.short	21190
+	.short	15880
+	.short	10566
+	.short	20130
+	.short	15873
+	.short	11649
+	.short	28585
+	.short	28590
+	.short	29619
+	.short	30648
+	.short	10570
+	.short	19026
+	.short	27482
+	.short	32767
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.global	continueData
+	.align	1
+	.type	continueData, %object
+	.size	continueData, 512
+continueData:
+	.short	20303
+	.short	79
+	.short	20303
+	.short	79
+	.short	79
+	.short	79
+	.short	79
+	.short	79
+	.short	79
+	.short	0
+	.short	79
+	.short	79
+	.short	79
+	.short	0
+	.short	79
+	.short	79
+	.short	79
+	.short	0
+	.short	79
+	.short	79
+	.short	79
+	.short	79
+	.short	79
+	.short	79
+	.short	20303
+	.short	79
+	.short	20303
+	.short	79
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	79
+	.short	20224
+	.short	20224
+	.short	20303
+	.short	20303
+	.short	20224
+	.short	0
+	.short	79
+	.short	79
+	.short	20303
+	.short	0
+	.short	79
+	.short	79
+	.short	20303
+	.short	0
+	.short	79
+	.short	79
+	.short	20224
+	.short	0
+	.short	79
+	.short	79
+	.short	20224
+	.short	0
+	.short	79
+	.short	79
+	.short	20224
+	.short	0
+	.short	79
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	20224
+	.short	20224
+	.short	0
+	.short	79
+	.short	20224
+	.short	20224
+	.short	79
+	.short	79
+	.short	20224
+	.short	20224
+	.short	20224
+	.short	79
+	.short	20224
+	.short	20224
+	.short	20224
+	.short	79
+	.short	20224
+	.short	20224
+	.short	0
+	.short	79
+	.short	20224
+	.short	20224
+	.short	0
+	.short	79
+	.short	20224
+	.short	20224
+	.short	0
+	.short	79
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	79
+	.short	79
+	.short	20303
+	.short	79
+	.short	79
+	.short	79
+	.short	79
+	.short	0
+	.short	79
+	.short	79
+	.short	79
+	.short	0
+	.short	79
+	.short	79
+	.short	20303
+	.short	0
+	.short	79
+	.short	79
+	.short	79
+	.short	0
+	.short	79
+	.short	79
+	.short	79
+	.short	0
+	.short	20303
+	.short	79
+	.short	20303
+	.short	79
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	20303
+	.short	79
+	.short	20303
+	.short	79
+	.short	79
+	.short	79
+	.short	79
+	.short	79
+	.short	20303
+	.short	79
+	.short	20303
+	.short	79
+	.short	79
+	.short	0
+	.short	20303
+	.short	0
+	.short	79
+	.short	0
+	.short	79
+	.short	79
+	.short	79
+	.short	0
+	.short	79
+	.short	79
+	.short	79
+	.short	0
+	.short	79
+	.short	79
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	20303
+	.short	79
+	.short	20303
+	.short	79
+	.short	79
+	.short	0
+	.short	79
+	.short	0
+	.short	20303
+	.short	0
+	.short	20303
+	.short	79
+	.short	79
+	.short	0
+	.short	0
+	.short	79
+	.short	79
+	.short	0
+	.short	0
+	.short	79
+	.short	79
+	.short	0
+	.short	0
+	.short	79
+	.short	20303
+	.short	79
+	.short	20303
+	.short	79
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	20303
+	.short	79
+	.short	0
+	.short	79
+	.short	79
+	.short	0
+	.short	0
+	.short	20224
+	.short	20303
+	.short	79
+	.short	0
+	.short	0
+	.short	0
+	.short	79
+	.short	0
+	.short	0
+	.short	0
+	.short	79
+	.short	0
+	.short	0
+	.short	0
+	.short	79
+	.short	0
+	.short	0
+	.short	20303
+	.short	79
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	20303
+	.short	79
+	.short	20224
+	.short	0
+	.short	79
+	.short	79
+	.short	79
+	.short	0
+	.short	79
+	.short	79
+	.short	0
+	.short	0
+	.short	20303
+	.short	79
+	.short	0
+	.short	0
+	.short	79
+	.short	79
+	.short	0
+	.short	0
+	.short	79
+	.short	79
+	.short	0
+	.short	0
+	.short	79
+	.short	79
+	.short	0
+	.global	continuePalette
+	.align	1
+	.type	continuePalette, %object
+	.size	continuePalette, 512
+continuePalette:
+	.short	0
+	.short	2
+	.short	1086
+	.short	3194
+	.short	6358
+	.short	7404
+	.short	2131
+	.short	1071
+	.short	1066
+	.short	8478
+	.short	11645
+	.short	17981
+	.short	23261
+	.short	29734
+	.short	23785
+	.short	15625
+	.short	8358
+	.short	20516
+	.short	10242
+	.short	29963
+	.short	30160
+	.short	30292
+	.short	30456
+	.short	2982
+	.short	5864
+	.short	7656
+	.short	6438
+	.short	1701
+	.short	1378
+	.short	8107
+	.short	16305
+	.short	22454
+	.short	3005
+	.short	4921
+	.short	7696
+	.short	6474
+	.short	1717
+	.short	495
+	.short	297
+	.short	7101
+	.short	12221
+	.short	18365
+	.short	23485
+	.short	2556
+	.short	5590
+	.short	7536
+	.short	6410
+	.short	1397
+	.short	1296
+	.short	203
+	.short	5660
+	.short	10876
+	.short	15037
+	.short	23390
+	.short	29784
+	.short	23764
+	.short	16623
+	.short	10474
+	.short	21554
+	.short	16429
+	.short	10248
+	.short	29945
+	.short	30042
+	.short	30267
+	.short	30428
+	.short	27523
+	.short	21190
+	.short	15880
+	.short	10566
+	.short	20130
+	.short	15873
+	.short	11649
+	.short	28585
+	.short	28590
+	.short	29619
+	.short	30648
+	.short	10570
+	.short	19026
+	.short	27482
+	.short	32767
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
+	.short	0
 	.global	mapTiles
 	.data
 	.align	2
 	.type	mapTiles, %object
 	.size	mapTiles, 4
 mapTiles:
-	.word	simpleOutside_Tiles
+	.word	shipBGscrn_Tiles
 	.global	map
 	.align	2
 	.type	map, %object
 	.size	map, 4
 map:
-	.word	simpleOutside_Map
+	.word	shipBGscrn_Map
 	.global	mapPalette
 	.align	2
 	.type	mapPalette, %object
 	.size	mapPalette, 4
 mapPalette:
-	.word	simpleOutside_Palette
+	.word	bg_Palette
 	.global	hitMap
 	.align	2
 	.type	hitMap, %object
 	.size	hitMap, 4
 hitMap:
-	.word	simpleOutsideHitMap_Map
+	.word	shipHitMapscrn_Map
 	.global	hitMapTiles
 	.align	2
 	.type	hitMapTiles, %object
 	.size	hitMapTiles, 4
 hitMapTiles:
-	.word	simpleOutsideHitMap_Tiles
+	.word	shipHitMapscrn_Tiles
 	.global	isJumping
 	.bss
 	.global	isJumping
@@ -15421,93 +19573,93 @@ isMoving:
 	.size	walkingCounter, 4
 walkingCounter:
 	.space	4
-	.global	mapLeft
-	.global	mapLeft
+	.global	shipMapLeft
+	.global	shipMapLeft
 	.align	2
-	.type	mapLeft, %object
-	.size	mapLeft, 4
-mapLeft:
+	.type	shipMapLeft, %object
+	.size	shipMapLeft, 4
+shipMapLeft:
 	.space	4
-	.global	mapRight
+	.global	shipMapRight
 	.data
 	.align	2
-	.type	mapRight, %object
-	.size	mapRight, 4
-mapRight:
+	.type	shipMapRight, %object
+	.size	shipMapRight, 4
+shipMapRight:
 	.word	255
-	.global	screenLeft
+	.global	shipScreenLeft
 	.bss
-	.global	screenLeft
+	.global	shipScreenLeft
 	.align	2
-	.type	screenLeft, %object
-	.size	screenLeft, 4
-screenLeft:
+	.type	shipScreenLeft, %object
+	.size	shipScreenLeft, 4
+shipScreenLeft:
 	.space	4
-	.global	screenRight
+	.global	shipScreenRight
 	.data
 	.align	2
-	.type	screenRight, %object
-	.size	screenRight, 4
-screenRight:
+	.type	shipScreenRight, %object
+	.size	shipScreenRight, 4
+shipScreenRight:
 	.word	239
-	.global	nextColumn
+	.global	shipNextColumn
 	.bss
-	.global	nextColumn
+	.global	shipNextColumn
 	.align	2
-	.type	nextColumn, %object
-	.size	nextColumn, 4
-nextColumn:
+	.type	shipNextColumn, %object
+	.size	shipNextColumn, 4
+shipNextColumn:
 	.space	4
-	.global	prevColumn
-	.global	prevColumn
+	.global	shipPrevColumn
+	.global	shipPrevColumn
 	.align	2
-	.type	prevColumn, %object
-	.size	prevColumn, 4
-prevColumn:
+	.type	shipPrevColumn, %object
+	.size	shipPrevColumn, 4
+shipPrevColumn:
 	.space	4
-	.global	mapTop
-	.global	mapTop
+	.global	shipMapTop
+	.global	shipMapTop
 	.align	2
-	.type	mapTop, %object
-	.size	mapTop, 4
-mapTop:
+	.type	shipMapTop, %object
+	.size	shipMapTop, 4
+shipMapTop:
 	.space	4
-	.global	mapBottom
+	.global	shipMapBottom
 	.data
 	.align	2
-	.type	mapBottom, %object
-	.size	mapBottom, 4
-mapBottom:
+	.type	shipMapBottom, %object
+	.size	shipMapBottom, 4
+shipMapBottom:
 	.word	255
-	.global	screenTop
+	.global	shipScreenTop
 	.bss
-	.global	screenTop
+	.global	shipScreenTop
 	.align	2
-	.type	screenTop, %object
-	.size	screenTop, 4
-screenTop:
+	.type	shipScreenTop, %object
+	.size	shipScreenTop, 4
+shipScreenTop:
 	.space	4
-	.global	screenBottom
+	.global	shipScreenBottom
 	.data
 	.align	2
-	.type	screenBottom, %object
-	.size	screenBottom, 4
-screenBottom:
+	.type	shipScreenBottom, %object
+	.size	shipScreenBottom, 4
+shipScreenBottom:
 	.word	159
-	.global	nextRow
+	.global	shipNextRow
 	.bss
-	.global	nextRow
+	.global	shipNextRow
 	.align	2
-	.type	nextRow, %object
-	.size	nextRow, 4
-nextRow:
+	.type	shipNextRow, %object
+	.size	shipNextRow, 4
+shipNextRow:
 	.space	4
-	.global	prevRow
-	.global	prevRow
+	.global	shipPrevRow
+	.global	shipPrevRow
 	.align	2
-	.type	prevRow, %object
-	.size	prevRow, 4
-prevRow:
+	.type	shipPrevRow, %object
+	.size	shipPrevRow, 4
+shipPrevRow:
 	.space	4
 	.global	regX
 	.global	regX
@@ -15523,267 +19675,601 @@ regX:
 	.size	regY, 4
 regY:
 	.space	4
+	.global	tookStep
+	.global	tookStep
+	.align	2
+	.type	tookStep, %object
+	.size	tookStep, 4
+tookStep:
+	.space	4
+	.global	gameOver
+	.global	gameOver
+	.align	2
+	.type	gameOver, %object
+	.size	gameOver, 4
+gameOver:
+	.space	4
+	.global	timeLeft
+	.data
+	.align	2
+	.type	timeLeft, %object
+	.size	timeLeft, 4
+timeLeft:
+	.word	10
 	.text
 	.align	2
-	.global	Initialize
-	.type	Initialize, %function
-Initialize:
+	.global	ShipInitialize
+	.type	ShipInitialize, %function
+ShipInitialize:
 	@ Function supports interworking.
 	@ args = 0, pretend = 0, frame = 0
 	@ frame_needed = 1, uses_anonymous_args = 0
+	ldr	r3, .L289
 	mov	ip, sp
-	mov	r2, #4416
-	mov	r3, #67108864
-	mov	r1, #83886080
-	ldr	r0, .L184
+	mov	r0, #239
 	stmfd	sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr, pc}
-	add	r1, r1, #512
-	str	r2, [r3, #0]
+	str	r0, [r3, #0]	@  shipScreenRight
+	ldr	r3, .L289+4
+	ldr	r2, .L289+8
+	mov	r0, #159
+	mov	lr, #255
+	str	r0, [r3, #0]	@  shipScreenBottom
 	sub	fp, ip, #4
-	mov	r2, #0	@  n
-.L118:
-	mov	r3, r2, asl #1	@  n
-	ldrh	r4, [r3, r0]	@ movhi	@  philPalette
-	add	r2, r2, #1	@  n,  n
-	cmp	r2, #255	@  n
-	strh	r4, [r3, r1]	@ movhi 
-	ble	.L118
-	mov	r0, #508
-	mov	r1, #100663296
-	ldr	ip, .L184+4
-	mov	r2, #0	@  n
-	add	r0, r0, #3
-	add	r1, r1, #65536
-.L123:
-	mov	r3, r2, asl #1	@  n
-	ldrh	lr, [r3, ip]	@ movhi	@  philData
-	add	r2, r2, #1	@  n,  n
-	cmp	r2, r0	@  n
-	strh	lr, [r3, r1]	@ movhi 
-	ble	.L123
-	mov	r2, #512	@  n
-	mov	ip, #100663296
-	ldr	lr, .L184+8
-	add	r0, r2, r2	@  n
-	add	ip, ip, #65536
-	mov	r1, #0
-.L128:
-	mov	r3, r2, asl #1	@  n
-	ldrh	r4, [r1, lr]	@ movhi	@  philFacingRightData
-	add	r2, r2, #1	@  n,  n
-	cmp	r2, r0	@  n
-	strh	r4, [r3, ip]	@ movhi 
-	add	r1, r1, #2
-	blt	.L128
-	add	r3, r2, #512	@  n
-	mov	ip, #100663296
-	ldr	lr, .L184+12
-	mov	r0, r3
-	add	ip, ip, #65536
-	mov	r1, #0
-.L133:
-	mov	r3, r2, asl #1	@  n
-	ldrh	r4, [r1, lr]	@ movhi	@  philFacingRight2Data
-	add	r2, r2, #1	@  n,  n
-	cmp	r2, r0	@  n
-	strh	r4, [r3, ip]	@ movhi 
-	add	r1, r1, #2
-	blt	.L133
-	add	r3, r2, #512	@  n
-	mov	ip, #100663296
-	ldr	lr, .L184+16
-	mov	r0, r3
-	add	ip, ip, #65536
-	mov	r1, #0
-.L138:
-	mov	r3, r2, asl #1	@  n
-	ldrh	r4, [r1, lr]	@ movhi	@  philFacingRight3Data
-	add	r2, r2, #1	@  n,  n
-	cmp	r2, r0	@  n
-	strh	r4, [r3, ip]	@ movhi 
-	add	r1, r1, #2
-	blt	.L138
-	add	r3, r2, #512	@  n
-	mov	ip, #100663296
-	ldr	lr, .L184+20
-	mov	r0, r3
-	add	ip, ip, #65536
-	mov	r1, #0
-.L143:
-	mov	r3, r2, asl #1	@  n
-	ldrh	r4, [r1, lr]	@ movhi	@  philJumpingData
-	add	r2, r2, #1	@  n,  n
-	cmp	r2, r0	@  n
-	strh	r4, [r3, ip]	@ movhi 
-	add	r1, r1, #2
-	blt	.L143
-	add	r3, r2, #32	@  n
-	mov	ip, #100663296
-	ldr	lr, .L184+24
-	mov	r0, r3
-	add	ip, ip, #65536
-	mov	r1, #0
-.L148:
-	mov	r3, r2, asl #1	@  n
-	ldrh	r4, [r1, lr]	@ movhi	@  laserData
-	add	r2, r2, #1	@  n,  n
-	cmp	r2, r0	@  n
-	strh	r4, [r3, ip]	@ movhi 
-	add	r1, r1, #2
-	blt	.L148
-	ldr	r9, .L184+28
-	mov	r0, #160
-	mov	r8, #240
-	mov	sl, #1
+	mov	r3, #67108864
+	mov	ip, #4416
+	str	lr, [r2, #0]	@  shipMapBottom
+	str	ip, [r3, #0]
+	ldr	r2, .L289+12
+	ldr	r3, .L289+16
 	mov	r1, #0	@  n
-	mov	r2, #127	@  n
+	str	r1, [r2, #0]	@  n,  shipMapLeft
+	str	lr, [r3, #0]	@  shipMapRight
+	ldr	r2, .L289+20
+	ldr	r3, .L289+24
+	str	r1, [r2, #0]	@  n,  shipScreenLeft
+	str	r1, [r3, #0]	@  n,  shipNextColumn
+	ldr	r2, .L289+28
+	ldr	r3, .L289+32
+	str	r1, [r2, #0]	@  n,  shipPrevColumn
+	str	r1, [r3, #0]	@  n,  shipMapTop
+	ldr	r2, .L289+36
+	ldr	r3, .L289+40
+	str	r1, [r2, #0]	@  n,  shipScreenTop
+	str	r1, [r3, #0]	@  n,  shipNextRow
+	ldr	r2, .L289+44
+	ldr	r3, .L289+48
+	str	r1, [r2, #0]	@  n,  shipPrevRow
+	str	r1, [r3, #0]	@  n,  regX
+	ldr	r2, .L289+52
+	ldr	r3, .L289+56
+	str	r1, [r2, #0]	@  n,  regY
+	str	r1, [r3, #0]	@  n,  tookStep
+	mov	r2, #83886080
+	ldr	r0, .L289+60
+	mov	r5, r1	@  n,  n
+	add	r2, r2, #512
+.L118:
+	mov	r3, r5, asl #1	@  n
+	ldrh	r1, [r3, r0]	@ movhi	@  philPalette
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, #255	@  n
+	strh	r1, [r3, r2]	@ movhi 
+	ble	.L118
+	mov	r1, #508
+	mov	r2, #100663296
+	ldr	r0, .L289+64
+	mov	r5, #0	@  n
+	add	r1, r1, #3
+	add	r2, r2, #65536
+.L123:
+	mov	r3, r5, asl #1	@  n
+	ldrh	ip, [r3, r0]	@ movhi	@  philData
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	ip, [r3, r2]	@ movhi 
+	ble	.L123
+	mov	r5, #512	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+68
+	add	r1, r5, r5	@  n
+	add	r0, r0, #65536
+	mov	r2, #0
+.L128:
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  philFacingRightData
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L128
+	add	r3, r5, #512	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+72
+	mov	r1, r3
+	add	r0, r0, #65536
+	mov	r2, #0
+.L133:
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  philFacingRight2Data
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L133
+	add	r3, r5, #512	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+76
+	mov	r1, r3
+	add	r0, r0, #65536
+	mov	r2, #0
+.L138:
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  philFacingRight3Data
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L138
+	add	r3, r5, #512	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+80
+	mov	r1, r3
+	add	r0, r0, #65536
+	mov	r2, #0
+.L143:
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  philJumpingData
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L143
+	add	r3, r5, #512	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+84
+	mov	r1, r3
+	add	r0, r0, #65536
+	mov	r2, #0
+.L148:
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  enemyData
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L148
+	add	r3, r5, #32	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+88
+	mov	r1, r3
+	add	r0, r0, #65536
+	mov	r2, #0
 .L153:
-	add	r3, r1, r9	@  n
-	subs	r2, r2, #1	@  n,  n
-	str	r8, [r1, r9]	@  <variable>.x
-	str	sl, [r3, #84]	@  <variable>.isRemoved
-	str	r0, [r3, #4]	@  <variable>.y
-	add	r1, r1, #136	@  n,  n
-	bpl	.L153
-	ldr	ip, .L184+32
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  laserPurpleData
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L153
+	add	r3, r5, #32	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+92
+	mov	r1, r3
+	add	r0, r0, #65536
+	mov	r2, #0
+.L158:
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  laserData
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L158
+	add	r3, r5, #32	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+96
+	mov	r1, r3
+	add	r0, r0, #65536
+	mov	r2, #0
+.L163:
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  hud0Data
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L163
+	add	r3, r5, #32	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+100
+	mov	r1, r3
+	add	r0, r0, #65536
+	mov	r2, #0
+.L168:
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  hud1Data
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L168
+	add	r3, r5, #32	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+104
+	mov	r1, r3
+	add	r0, r0, #65536
+	mov	r2, #0
+.L173:
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  hud2Data
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L173
+	add	r3, r5, #32	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+108
+	mov	r1, r3
+	add	r0, r0, #65536
+	mov	r2, #0
+.L178:
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  hud3Data
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L178
+	add	r3, r5, #32	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+112
+	mov	r1, r3
+	add	r0, r0, #65536
+	mov	r2, #0
+.L183:
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  hud4Data
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L183
+	add	r3, r5, #32	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+116
+	mov	r1, r3
+	add	r0, r0, #65536
+	mov	r2, #0
+.L188:
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  hud5Data
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L188
+	add	r3, r5, #32	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+120
+	mov	r1, r3
+	add	r0, r0, #65536
+	mov	r2, #0
+.L193:
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  hud6Data
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L193
+	add	r3, r5, #32	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+124
+	mov	r1, r3
+	add	r0, r0, #65536
+	mov	r2, #0
+.L198:
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  hud7Data
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L198
+	add	r3, r5, #32	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+128
+	mov	r1, r3
+	add	r0, r0, #65536
+	mov	r2, #0
+.L203:
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  hud8Data
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L203
+	add	r3, r5, #32	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+132
+	mov	r1, r3
+	add	r0, r0, #65536
+	mov	r2, #0
+.L208:
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  hud9Data
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L208
+	add	r3, r5, #32	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+136
+	mov	r1, r3
+	add	r0, r0, #65536
+	mov	r2, #0
+.L213:
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  hudPercentData
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L213
+	add	r3, r5, #128	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+140
+	mov	r1, r3
+	add	r0, r0, #65536
+	mov	r2, #0
+.L218:
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  hudLifeData
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L218
+	add	r3, r5, #512	@  n
+	mov	r0, #100663296
+	ldr	ip, .L289+144
+	mov	r1, r3
+	add	r0, r0, #65536
+	mov	r2, #0
+.L223:
+	mov	r3, r5, asl #1	@  n
+	ldrh	lr, [r2, ip]	@ movhi	@  continueData
+	add	r5, r5, #1	@  n,  n
+	cmp	r5, r1	@  n
+	strh	lr, [r3, r0]	@ movhi 
+	add	r2, r2, #2
+	blt	.L223
+	ldr	r9, .L289+148	@  loc
+	ldr	r6, .L289+152
+	mov	r4, r9	@  loc,  loc
+	mov	r5, #127	@  n
+.L228:
+	mov	r0, r4	@  loc
+	mov	lr, pc
+	bx	r6
+	subs	r5, r5, #1	@  n,  n
+	add	r4, r4, #144	@  loc,  loc
+	bpl	.L228
+	ldr	ip, .L289+156
 	mov	r5, #0	@  i
-	mov	lr, #32
+	mov	sl, #8
 	mov	r3, #7
-	mov	r2, #8
-	str	lr, [ip, #12]	@  characterStandingRightBBox.ysize
-	stmia	ip, {r3, r5}	@ phole stm
-	str	r2, [ip, #8]	@  characterStandingRightBBox.xsize
-	ldr	r4, .L184+36
+	mov	r1, #32
+	stmia	ip, {r3, r5, sl}	@ phole stm
+	str	r1, [ip, #12]	@  characterStandingRightBBox.ysize
+	ldr	r8, .L289+160
 	ldmia	ip, {r0, r1, r2, r3}
+	ldr	r4, .L289+164
+	mov	lr, #96
 	mov	ip, #32768
 	str	ip, [r9, #8]	@  <variable>.size
-	ldr	r6, .L184+40
-	mov	ip, #2
-	str	lr, [r9, #68]	@  <variable>.location
-	str	ip, [r4, #0]	@  characterWalkingRightBBox.x
-	mov	ip, #18
-	str	ip, [r6, #0]	@  characterWalkingLeftBBox.x
-	ldr	r7, .L184+44
-	mov	ip, #16
-	str	ip, [r6, #8]	@  characterWalkingLeftBBox.xsize
-	mov	ip, #14
-	str	lr, [r4, #12]	@  characterWalkingRightBBox.ysize
-	str	lr, [r6, #12]	@  characterWalkingLeftBBox.ysize
-	str	ip, [r7, #0]	@  characterStandingLeftBBox.x
-	str	lr, [r7, #12]	@  characterStandingLeftBBox.ysize
-	ldr	ip, .L184+48
-	ldr	lr, .L184+52
-	str	r5, [ip, #0]	@  i,  characterSpriteIndex
-	str	r2, [r7, #8]	@  characterStandingLeftBBox.xsize
-	str	r5, [r9, #4]	@  i,  <variable>.y
+	str	lr, [r9, #4]	@  <variable>.y
+	str	lr, [r9, #48]	@  <variable>.mapY
+	str	r3, [r9, #68]	@  <variable>.location
 	str	r5, [r9, #0]	@  i,  <variable>.x
 	str	r5, [r9, #44]	@  i,  <variable>.mapX
-	str	r5, [r9, #48]	@  i,  <variable>.mapY
 	str	r5, [r9, #12]	@  i,  <variable>.shape
-	stmia	lr, {r0, r1, r2, r3}
+	mov	ip, r3
+	stmia	r8, {r0, r1, r2, r3}
+	ldr	r6, .L289+168
+	mov	r3, #2
+	ldr	r7, .L289+172
+	str	r3, [r4, #0]	@  characterWalkingRightBBox.x
+	mov	r3, #18
+	str	r3, [r6, #0]	@  characterWalkingLeftBBox.x
+	mov	r1, lr
 	mov	r2, #16
+	ldr	lr, .L289+176
+	mov	r3, #14
+	str	r2, [r6, #8]	@  characterWalkingLeftBBox.xsize
+	str	r3, [r7, #0]	@  characterStandingLeftBBox.x
 	str	r2, [r4, #8]	@  characterWalkingRightBBox.xsize
+	mov	r3, #10
+	mov	r2, #1
+	str	ip, [r4, #12]	@  characterWalkingRightBBox.ysize
+	str	ip, [r6, #12]	@  characterWalkingLeftBBox.ysize
+	str	ip, [r7, #12]	@  characterStandingLeftBBox.ysize
+	str	r5, [lr, #0]	@  i,  characterSpriteIndex
+	str	sl, [r7, #8]	@  characterStandingLeftBBox.xsize
 	str	r5, [r4, #4]	@  i,  characterWalkingRightBBox.y
-	ldr	r4, .L184+56
 	str	r5, [r6, #4]	@  i,  characterWalkingLeftBBox.y
 	str	r5, [r7, #4]	@  i,  characterStandingLeftBBox.y
+	mov	r0, #260
 	str	r5, [r9, #72]	@  i,  <variable>.noGravity
 	str	r5, [r9, #76]	@  i,  <variable>.isProjectile
-	ldr	r3, [r4, #0]	@  numberOfSprites
-	add	r3, r3, #1
-	str	r3, [r4, #0]	@  numberOfSprites
-	mov	r0, #60
-	ldr	r3, .L184+60
-	str	sl, [r9, #116]	@  <variable>.dir
-	str	sl, [r9, #80]	@  <variable>.speed
-	str	r5, [r9, #84]	@  i,  <variable>.isRemoved
+	str	r3, [r9, #52]	@  <variable>.hits
+	str	r2, [r9, #88]	@  <variable>.speed
+	str	r2, [r9, #124]	@  <variable>.dir
+	ldr	r3, .L289+180
+	str	r5, [r9, #92]	@  i,  <variable>.isRemoved
 	mov	lr, pc
 	bx	r3
-	ldr	r3, .L184+64
-	str	r0, [r3, #0]	@  enemySpriteIndex
+	ldr	r3, .L289+184
+	mov	ip, r0	@  loc
+	mov	r6, #128	@  n
+	mov	r1, r6	@  n
+	str	ip, [r3, #0]	@  loc,  enemySpriteIndex
+	mov	r2, r5	@  i
+	sub	r0, r8, #128
+	bl	GetNextFreePosition
+	add	r3, r0, r0, asl #3	@  loc,  loc
+	mov	r3, r3, asl #4
+	mov	ip, #4
+	add	r4, r3, r9	@  loc
+	str	ip, [r3, r9]	@  <variable>.x
+	mov	r3, #16384
+	mov	lr, #140
+	str	r3, [r4, #12]	@  <variable>.shape
+	mov	ip, #218
+	mov	r3, #1
+	mov	r1, r6	@  n
+	str	lr, [r4, #4]	@  <variable>.y
+	str	ip, [r4, #68]	@  <variable>.location
+	str	r3, [r4, #72]	@  <variable>.noGravity
+	mov	r2, r5	@  i
+	str	r5, [r4, #92]	@  i,  <variable>.isRemoved
+	str	r5, [r4, #8]	@  i,  <variable>.size
+	str	r5, [r4, #76]	@  i,  <variable>.isProjectile
+	sub	r0, r8, #128
+	bl	GetNextFreePosition
+	ldr	lr, .L289+176
+	ldr	r3, [lr, #0]	@  characterSpriteIndex
+	add	r3, r3, r3, asl #3
+	add	r3, r9, r3, asl #4	@  loc
+	mov	ip, r0	@  loc
+	ldr	r2, .L289+188
+	ldr	r0, [r3, #52]	@  loc,  <variable>.hits
+	ldr	r3, .L289+192
+	add	r1, ip, #1	@  loc
+	str	ip, [r2, #0]	@  loc,  leftHealthIndex
+	str	r1, [r3, #0]	@  rightHealthIndex
+	ldr	r3, .L289+196
+	mov	lr, pc
+	bx	r3
 	bl	WaitVBlank
-	ldr	ip, .L184+52
-	mov	r1, #128
-	sub	r0, ip, #120
+	mov	r1, r6	@  n
+	sub	r0, r8, #128
 	bl	UpdateSpriteMemory
-	ldr	r3, .L184+68
+	ldr	r3, .L289+200
 	mov	ip, #100663296
-	ldr	r6, .L184+72
-	ldr	r7, .L184+76
+	ldr	r6, .L289+204
+	ldr	r7, .L289+208
 	mov	r4, ip
-	mov	lr, #8064	@ movhi
+	ldr	r0, [r3, #0]	@  loc,  mapPalette
 	add	ip, ip, #63488
-	ldr	r0, [r3, #0]	@  mapPalette
-	mov	r2, #7296	@ movhi
 	mov	r3, #67108864
+	mov	r1, #8064	@ movhi
+	mov	r2, #7296	@ movhi
 	add	r4, r4, #57344
-	strh	lr, [r3, #8]	@ movhi 
 	str	ip, [r6, #0]	@  bg0map
+	strh	r1, [r3, #8]	@ movhi 
+	str	r4, [r7, #0]	@  bg1map
 	strh	r2, [r3, #10]	@ movhi 
 	mov	r1, #83886080
 	mov	r2, #256
 	mov	r3, #-2147483648
-	str	r4, [r7, #0]	@  bg1map
 	bl	DMAFastCopy
-	ldr	r3, .L184+80
+	ldr	r3, .L289+212
 	mov	r1, #100663296
-	ldr	r0, [r3, #0]	@  mapTiles
-	mov	r2, #192
+	ldr	r0, [r3, #0]	@  loc,  mapTiles
+	mov	r2, #1248
 	mov	r3, #-2080374784
 	bl	DMAFastCopy
-	ldr	r3, .L184+84
+	ldr	r3, .L289+216
 	mov	r1, #100663296
-	ldr	r0, [r3, #0]	@  hitMapTiles
-	mov	r2, r8
+	ldr	r0, [r3, #0]	@  loc,  hitMapTiles
+	mov	r2, #32
 	mov	r3, #-2080374784
 	add	r1, r1, #32768
 	bl	DMAFastCopy
-	ldr	r3, .L184+88
+	ldr	r3, .L289+220
 	ldr	ip, [r3, #0]	@  map
-	ldr	r3, .L184+92
+	ldr	r3, .L289+224
 	ldr	r6, [r6, #0]	@  bg0map
 	ldr	r7, [r7, #0]	@  bg1map
-	ldr	r3, [r3, #0]	@  hitMap
-	mov	lr, r5	@  i,  i
-.L163:
-	mov	r1, lr, asl #1	@  i
-	mov	r2, lr	@  i,  i
-	mov	r0, #31	@  j
-.L162:
-	ldrh	r4, [r1, ip]	@ movhi
-	strh	r4, [r2, r6]	@ movhi 
-	ldrh	r4, [r1, r3]	@ movhi
-	subs	r0, r0, #1	@  j,  j
-	strh	r4, [r2, r7]	@ movhi 
-	add	r1, r1, #2
-	add	r2, r2, #2	@  i,  i
-	bpl	.L162
+	ldr	r0, [r3, #0]	@  hitMap
+.L238:
+	add	r3, r5, r5, asl #2	@  i,  i
+	add	r3, r3, r3, asl #2
+	mov	r3, r3, asl #3
+	mov	r2, r5, asl #6	@  i
+	mov	r1, #31	@  j
+.L237:
+	ldrh	lr, [r3, ip]	@ movhi
+	strh	lr, [r2, r6]	@ movhi 
+	ldrh	lr, [r3, r0]	@ movhi
+	subs	r1, r1, #1	@  j,  j
+	strh	lr, [r2, r7]	@ movhi 
+	add	r3, r3, #2
+	add	r2, r2, #2
+	bpl	.L237
 	add	r5, r5, #1	@  i,  i
 	cmp	r5, #31	@  i
-	add	lr, lr, #64	@  i,  i
-	ble	.L163
+	ble	.L238
 	ldmea	fp, {r4, r5, r6, r7, r8, r9, sl, fp, sp, lr}
 	bx	lr
-.L185:
+.L290:
 	.align	2
-.L184:
+.L289:
+	.word	shipScreenRight
+	.word	shipScreenBottom
+	.word	shipMapBottom
+	.word	shipMapLeft
+	.word	shipMapRight
+	.word	shipScreenLeft
+	.word	shipNextColumn
+	.word	shipPrevColumn
+	.word	shipMapTop
+	.word	shipScreenTop
+	.word	shipNextRow
+	.word	shipPrevRow
+	.word	regX
+	.word	regY
+	.word	tookStep
 	.word	philPalette
 	.word	philData
 	.word	philFacingRightData
 	.word	philFacingRight2Data
 	.word	philFacingRight3Data
 	.word	philJumpingData
+	.word	enemyData
+	.word	laserPurpleData
 	.word	laserData
+	.word	hud0Data
+	.word	hud1Data
+	.word	hud2Data
+	.word	hud3Data
+	.word	hud4Data
+	.word	hud5Data
+	.word	hud6Data
+	.word	hud7Data
+	.word	hud8Data
+	.word	hud9Data
+	.word	hudPercentData
+	.word	hudLifeData
+	.word	continueData
 	.word	sprites
+	.word	RemoveSprite
 	.word	characterStandingRightBBox
+	.word	sprites+128
 	.word	characterWalkingRightBBox
 	.word	characterWalkingLeftBBox
 	.word	characterStandingLeftBBox
 	.word	characterSpriteIndex
-	.word	sprites+120
-	.word	numberOfSprites
 	.word	SpawnEnemy
 	.word	enemySpriteIndex
+	.word	leftHealthIndex
+	.word	rightHealthIndex
+	.word	ChangePlayerHealth
 	.word	mapPalette
 	.word	bg0map
 	.word	bg1map
@@ -15791,68 +20277,65 @@ Initialize:
 	.word	hitMapTiles
 	.word	map
 	.word	hitMap
-	.size	Initialize, .-Initialize
+	.size	ShipInitialize, .-ShipInitialize
 	.align	2
-	.global	Update
-	.type	Update, %function
-Update:
+	.global	ShipUpdate
+	.type	ShipUpdate, %function
+ShipUpdate:
 	@ Function supports interworking.
-	@ args = 0, pretend = 0, frame = 140
+	@ args = 0, pretend = 0, frame = 144
 	@ frame_needed = 1, uses_anonymous_args = 0
 	mov	ip, sp
 	stmfd	sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr, pc}
 	sub	fp, ip, #4
-	sub	sp, sp, #396
+	sub	sp, sp, #416
 	bl	keyPoll
 	mov	r0, #64
 	bl	keyHit
-	mov	r1, #0
 	cmp	r0, #0
-	str	r1, [fp, #-180]	@  projectileMoveCounter
-	beq	.L187
-	ldr	r2, .L280
-	ldr	r3, [r2, #0]	@  isJumping
-	cmp	r3, r1
-	bne	.L187
-	ldr	r4, .L280+4
+	beq	.L292
+	ldr	r2, .L390
+	ldr	r0, [r2, #0]	@  isJumping
+	cmp	r0, #0
+	bne	.L292
+	ldr	r4, .L390+4
 	ldr	r3, [r4, #0]	@  characterSpriteIndex
-	ldr	r1, .L280+8
-	add	r3, r3, r3, asl #4
-	add	r3, r1, r3, asl #3
+	ldr	r2, .L390+8
+	add	r3, r3, r3, asl #3
+	add	r3, r2, r3, asl #4
 	mov	r2, #128
 	str	r2, [r3, #68]	@  <variable>.location
-	ldr	r2, .L280
-	mov	r1, #1
-	str	r1, [r2, #0]	@  isJumping
-	ldr	r3, .L280+12
-	ldr	r2, .L280+16
-	mov	r1, #0
-	str	r1, [r3, #0]	@  jumpDuration
-	str	r1, [r2, #0]	@  walkingCounter
-.L187:
-	ldr	r2, .L280
-	ldr	r3, [r2, #0]	@  isJumping
+	ldr	r2, .L390
+	mov	r3, #1
+	ldr	r1, .L390+12
+	str	r3, [r2, #0]	@  isJumping
+	ldr	r2, .L390+16
+	str	r0, [r1, #0]	@  walkingCounter
+	str	r0, [r2, #0]	@  jumpDuration
+.L292:
+	ldr	r0, .L390
+	ldr	r3, [r0, #0]	@  isJumping
 	cmp	r3, #0
-	beq	.L188
-	ldr	r5, .L280+12
+	beq	.L293
+	ldr	r5, .L390+16
 	ldr	r3, [r5, #0]	@  jumpDuration
 	cmp	r3, #19
-	ble	.L268
-.L188:
-	ldr	r3, .L280+20
+	ble	.L375
+.L293:
+	ldr	r3, .L390+20
 	mov	lr, pc
 	bx	r3
-.L189:
+.L294:
 	mov	r0, #16
 	bl	keyHeld
 	cmp	r0, #0
-	beq	.L190
-	ldr	r1, .L280
-	ldr	r3, [r1, #0]	@  isJumping
+	beq	.L295
+	ldr	r0, .L390
+	ldr	r3, [r0, #0]	@  isJumping
 	cmp	r3, #0
-	bne	.L254
-	ldr	r3, .L280+16
-	ldr	r2, .L280+24
+	bne	.L363
+	ldr	r3, .L390+12
+	ldr	r2, .L390+24
 	ldr	r1, [r3, #0]	@  walkingCounter
 	smull	r3, r0, r2, r1
 	mov	r3, r1, asr #31
@@ -15860,80 +20343,85 @@ Update:
 	add	r3, r3, r3, asl #2
 	sub	r1, r1, r3, asl #3
 	cmp	r1, #10
-	beq	.L269
+	beq	.L376
 	cmp	r1, #20
-	beq	.L270
+	beq	.L377
 	cmp	r1, #30
-	beq	.L271
+	beq	.L378
 	cmp	r1, #0
-	bne	.L254
-	ldr	r4, .L280+4
+	bne	.L363
+	ldr	r4, .L390+4
 	ldr	ip, [r4, #0]	@  characterSpriteIndex
-	ldr	r1, .L280+8
-	add	ip, ip, ip, asl #4
-	add	ip, r1, ip, asl #3
-.L264:
+	ldr	r0, .L390+8
+	add	ip, ip, ip, asl #3
+	add	ip, r0, ip, asl #4
+.L372:
 	mov	r3, #32
 	str	r3, [ip, #68]	@  <variable>.location
-	ldr	lr, .L280+28
-.L257:
+	ldr	lr, .L390+28
+.L367:
 	ldmia	lr, {r0, r1, r2, r3}
-	add	ip, ip, #120
+	add	ip, ip, #128
 	stmia	ip, {r0, r1, r2, r3}
-.L191:
+.L296:
+	ldr	r1, .L390+32
 	ldr	r3, [r4, #0]	@  characterSpriteIndex
-	ldr	r2, .L280+8
-	add	r3, r3, r3, asl #4
-	mov	r3, r3, asl #3
-	ldr	ip, [r3, r2]	@  prevX,  <variable>.x
-	add	r4, r3, r2
-	mov	r6, #1	@  dir
-	mov	r3, #0
-	cmp	ip, #119	@  prevX
-	str	r3, [r4, #60]	@  <variable>.hFlip
-	str	r6, [r4, #116]	@  dir,  <variable>.dir
-	mov	r7, r2
-	ldr	r8, .L280+4
-	ble	.L200
-	ldr	r3, .L280+32
-	mov	r2, #508
-	ldr	r1, [r3, #0]	@  screenRight
+	ldr	r2, [r1, #0]	@  tookStep
+	add	r3, r3, r3, asl #3
+	cmp	r2, #0
+	ldr	r2, .L390+8
+	mov	r3, r3, asl #4
+	add	r5, r3, r2
+	mov	r6, #1
+	mov	r2, #0
+	str	r2, [r5, #60]	@  <variable>.hFlip
+	str	r6, [r5, #124]	@  <variable>.dir
+	ldr	r7, .L390+8
+	ldr	sl, .L390+4
+	strne	r2, [r1, #0]	@  tookStep
+	bne	.L295
+	ldr	r3, [r3, r7]	@  <variable>.x
+	cmp	r3, #119
+	str	r6, [r1, #0]	@  tookStep
+	ble	.L306
+	ldr	r3, .L390+36
+	mov	r2, #796
+	ldr	r1, [r3, #0]	@  shipScreenRight
 	add	r2, r2, #2
 	cmp	r1, r2
-	ble	.L199
-.L200:
-	add	r1, r4, #8	@  dir
-	mov	r2, #128
-	ldr	r3, .L280+36
-	mov	r0, sp
-	mov	r5, ip	@  prevX,  prevX
+	ble	.L305
+.L306:
+	ldr	r3, .L390+40
+	ldr	r1, [r3, #0]	@  enemySpriteIndex
+	add	r1, r1, r1, asl #3
+	add	r1, r7, r1, asl #4	@  dir
+	mov	r2, #144
+	ldr	r8, .L390+44
+	add	r0, sp, #128
 	mov	lr, pc
-	bx	r3
-	ldmia	r4, {r2, r3}
-	mov	r0, r4
-	mov	r1, r6	@  dir
-	ldr	ip, .L280+40
+	bx	r8
+	add	r1, r5, #16	@  dir
+	mov	r2, #128
+	mov	r0, sp
+	mov	lr, pc
+	bx	r8
+	ldmia	r5, {r0, r1, r2, r3}
+	ldr	ip, .L390+48
 	mov	lr, pc
 	bx	ip
-	ldr	r3, [r8, #0]	@  characterSpriteIndex
-	add	r3, r3, r3, asl #4
-	ldr	r2, [r7, r3, asl #3]	@  <variable>.x
-	cmp	r5, r2	@  prevX
-	ldrne	r2, .L280+16
-	ldrne	r3, [r2, #0]	@  walkingCounter
-	addne	r3, r3, #1
-	strne	r3, [r2, #0]	@  walkingCounter
-.L190:
+	cmp	r0, #0
+	beq	.L379
+.L295:
 	mov	r0, #32
 	bl	keyHeld
 	cmp	r0, #0
-	beq	.L204
-	ldr	r1, .L280
-	ldr	r3, [r1, #0]	@  isJumping
+	beq	.L314
+	ldr	r0, .L390
+	ldr	r3, [r0, #0]	@  isJumping
 	cmp	r3, #0
-	bne	.L256
-	ldr	r3, .L280+16
-	ldr	r2, .L280+24
+	bne	.L365
+	ldr	r3, .L390+12
+	ldr	r2, .L390+24
 	ldr	r1, [r3, #0]	@  walkingCounter
 	smull	r3, r0, r2, r1
 	mov	r3, r1, asr #31
@@ -15941,412 +20429,589 @@ Update:
 	add	r3, r3, r3, asl #2
 	sub	r1, r1, r3, asl #3
 	cmp	r1, #10
-	beq	.L272
+	beq	.L380
 	cmp	r1, #20
-	beq	.L273
+	beq	.L381
 	cmp	r1, #30
-	beq	.L274
+	beq	.L382
 	cmp	r1, #0
-	bne	.L256
-	ldr	r4, .L280+4
+	bne	.L365
+	ldr	r4, .L390+4
 	ldr	ip, [r4, #0]	@  characterSpriteIndex
-	ldr	r1, .L280+8
-	add	ip, ip, ip, asl #4
-	add	ip, r1, ip, asl #3
-.L266:
+	ldr	r0, .L390+8
+	add	ip, ip, ip, asl #3
+	add	ip, r0, ip, asl #4
+.L374:
 	mov	r3, #32
 	str	r3, [ip, #68]	@  <variable>.location
-	ldr	lr, .L280+44
-.L258:
+	ldr	lr, .L390+52
+.L368:
 	ldmia	lr, {r0, r1, r2, r3}
-	add	ip, ip, #120
+	add	ip, ip, #128
 	stmia	ip, {r0, r1, r2, r3}
-.L205:
+.L315:
+	ldr	r1, .L390+32
 	ldr	r3, [r4, #0]	@  characterSpriteIndex
-	ldr	r2, .L280+8
-	add	r3, r3, r3, asl #4
-	mov	r3, r3, asl #3
-	ldr	ip, [r3, r2]	@  prevX,  <variable>.x
-	add	r4, r3, r2
-	mov	r6, #0	@  dir
-	mov	r3, #1
-	cmp	ip, #120	@  prevX
-	str	r3, [r4, #60]	@  <variable>.hFlip
-	str	r6, [r4, #116]	@  dir,  <variable>.dir
-	mov	r7, r2
-	ldr	r8, .L280+4
-	bgt	.L214
-	ldr	r3, .L280+48
-	ldr	r2, [r3, #0]	@  screenLeft
+	ldr	r2, [r1, #0]	@  tookStep
+	add	r3, r3, r3, asl #3
+	cmp	r2, #0
+	ldr	r2, .L390+8
+	mov	r3, r3, asl #4
+	add	r5, r3, r2
+	mov	r6, #0
+	mov	r2, #1
+	str	r2, [r5, #60]	@  <variable>.hFlip
+	str	r6, [r5, #124]	@  <variable>.dir
+	ldr	r7, .L390+8
+	ldr	sl, .L390+4
+	strne	r6, [r1, #0]	@  tookStep
+	bne	.L314
+	ldr	r3, [r3, r7]	@  <variable>.x
+	cmp	r3, #120
+	str	r2, [r1, #0]	@  tookStep
+	bgt	.L325
+	ldr	r3, .L390+56
+	ldr	r2, [r3, #0]	@  shipScreenLeft
 	cmp	r2, r6
-	bne	.L213
-.L214:
-	add	r1, r4, #8	@  dir
-	mov	r2, #128
-	ldr	r3, .L280+36
-	mov	r0, sp
-	mov	r5, ip	@  prevX,  prevX
+	bne	.L324
+.L325:
+	ldr	r3, .L390+40
+	ldr	r1, [r3, #0]	@  enemySpriteIndex
+	add	r1, r1, r1, asl #3
+	add	r1, r7, r1, asl #4	@  dir
+	mov	r2, #144
+	ldr	r8, .L390+44
+	add	r0, sp, #128
 	mov	lr, pc
-	bx	r3
-	ldmia	r4, {r2, r3}
-	mov	r0, r4
-	mov	r1, r6	@  dir
-	ldr	ip, .L280+40
+	bx	r8
+	add	r1, r5, #16	@  dir
+	mov	r2, #128
+	mov	r0, sp
+	mov	lr, pc
+	bx	r8
+	ldmia	r5, {r0, r1, r2, r3}
+	ldr	ip, .L390+48
 	mov	lr, pc
 	bx	ip
-	ldr	r3, [r8, #0]	@  characterSpriteIndex
-	add	r3, r3, r3, asl #4
-	ldr	r2, [r7, r3, asl #3]	@  <variable>.x
-	cmp	r5, r2	@  prevX
-	ldrne	r2, .L280+16
-	ldrne	r3, [r2, #0]	@  walkingCounter
-	addne	r3, r3, #1
-	strne	r3, [r2, #0]	@  walkingCounter
-.L204:
+	cmp	r0, #0
+	beq	.L383
+.L314:
 	mov	r0, #1
 	bl	keyHit
 	cmp	r0, #0
-	bne	.L275
-.L218:
-	ldr	sl, .L280+8
+	bne	.L384
+.L332:
+	ldr	r0, .L390+60
+	mov	lr, pc
+	bx	r0
+	ldr	r2, .L390+64
+	smull	r3, r1, r2, r0
+	mov	r3, r0, asr #31
+	rsb	r3, r3, r1, asr #4
+	add	r3, r3, r3, asl #2
+	add	r3, r3, r3, asl #2
+	cmp	r0, r3, asl #1
+	beq	.L385
+.L336:
+	ldr	r9, .L390+68
+	ldr	r5, .L390+8
 	mov	r6, #0	@  i
-	mov	r5, sl
-	mov	r7, #127	@  i
-.L237:
+.L346:
 	ldr	r3, [r5, #76]	@  <variable>.isProjectile
 	cmp	r3, #0
-	beq	.L224
-	ldr	r3, [r5, #84]	@  <variable>.isRemoved
+	beq	.L339
+	ldr	r3, [r5, #92]	@  <variable>.isRemoved
 	cmp	r3, #0
-	beq	.L276
-.L224:
-	subs	r7, r7, #1	@  i,  i
-	add	r6, r6, #136	@  i,  i
-	add	r5, r5, #136
-	bpl	.L237
+	add	r1, r5, #8	@  dir
+	ldr	r7, .L390+44
+	mov	r0, sp
+	mov	r2, #136
+	beq	.L386
+.L339:
+	add	r6, r6, #1	@  i,  i
+	cmp	r6, #127	@  i
+	add	r5, r5, #144
+	ble	.L346
 	mov	r0, #32
 	bl	keyHeld
 	cmp	r0, #0
-	bne	.L238
+	bne	.L347
 	mov	r0, #16
 	bl	keyHeld
 	cmp	r0, #0
-	bne	.L238
-	ldr	r1, .L280
-	ldr	r3, [r1, #0]	@  isJumping
+	bne	.L347
+	ldr	r0, .L390
+	ldr	r3, [r0, #0]	@  isJumping
 	cmp	r3, #0
-	bne	.L238
-	ldr	r3, .L280+4
+	bne	.L347
+	ldr	r3, .L390+4
 	ldr	r2, [r3, #0]	@  characterSpriteIndex
-	ldr	r3, .L280+8
-	add	r2, r2, r2, asl #4
-	add	lr, r3, r2, asl #3
-	ldr	r2, [lr, #116]	@  <variable>.dir
+	ldr	r3, .L390+8
+	add	r2, r2, r2, asl #3
+	add	lr, r3, r2, asl #4
+	ldr	r2, [lr, #124]	@  <variable>.dir
 	mov	r3, #32
 	cmp	r2, #1
 	str	r3, [lr, #68]	@  <variable>.location
-	ldreq	ip, .L280+28
-	beq	.L262
+	ldreq	ip, .L390+28
+	beq	.L370
 	cmp	r2, #0
-	bne	.L238
-	ldr	ip, .L280+44
-.L262:
+	bne	.L347
+	ldr	ip, .L390+52
+.L370:
 	ldmia	ip, {r0, r1, r2, r3}
-	add	lr, lr, #120
+	add	lr, lr, #128
 	stmia	lr, {r0, r1, r2, r3}
-.L238:
+.L347:
 	bl	WaitVBlank
-	ldr	r0, .L280+8
+	ldr	r0, .L390+8
 	mov	r1, #128
 	bl	UpdateSpriteMemory
-	ldr	r3, .L280+52
-	ldr	r2, .L280+56
+	ldr	r3, .L390+72
+	ldr	r2, .L390+76
 	ldrh	r0, [r3, #0]	@  regY
 	ldrh	r1, [r2, #0]	@  regX
 	mov	r3, #67108864
 	strh	r0, [r3, #18]	@ movhi 
 	strh	r1, [r3, #16]	@ movhi 
-	mov	r3, #39936	@  n
-	add	r3, r3, #64	@  n,  n
-.L246:
+	mov	r3, #29952	@  n
+	add	r3, r3, #48	@  n,  n
+.L355:
 	subs	r3, r3, #1	@  n,  n
-	bne	.L246
+	bne	.L355
 	ldmea	fp, {r4, r5, r6, r7, r8, r9, sl, fp, sp, lr}
 	bx	lr
-.L276:
-	ldr	r4, [r5, #116]	@  dir,  <variable>.dir
-	add	r1, r5, #8	@  dir
+.L386:
+	ldr	r4, [r5, #124]	@  dir,  <variable>.dir
+	mov	lr, pc
+	bx	r7
+	ldmia	r5, {r2, r3}
+	mov	r0, r5
+	mov	r1, r4	@  dir
+	ldr	ip, .L390+80
+	mov	lr, pc
+	bx	ip
+	ldr	r3, [r5, #84]	@  <variable>.isEnemy
+	cmp	r3, #0
+	ldr	r8, .L390+4
+	ldr	sl, .L390+40
+	add	r0, sp, #128
+	mov	r2, #144
+	beq	.L387
+.L366:
+	ldr	r1, [r8, #0]	@  characterSpriteIndex
+	ldr	r3, .L390+8
+	add	r1, r1, r1, asl #3
+	add	r1, r3, r1, asl #4	@  dir
+	mov	r2, #144
+	add	r0, sp, #128
+	mov	lr, pc
+	bx	r7
+	add	r1, r5, #16	@  dir
 	mov	r2, #128
 	mov	r0, sp
-	ldr	r8, .L280+36
 	mov	lr, pc
-	bx	r8
-	mov	r1, r4	@  dir
-	mov	r0, r5
-	ldmia	r5, {r2, r3}
-	ldr	ip, .L280+40
-	mov	lr, pc
-	bx	ip
-	cmp	r9, #1	@  mapMoved
-	beq	.L277
-	cmp	r9, #0	@  mapMoved
-	bne	.L231
-	ldr	r3, [r5, #116]	@  <variable>.dir
-	cmp	r3, #1
-	beq	.L267
-	cmp	r3, #0
-	bne	.L231
-	ldr	r1, [fp, #-180]	@  projectileMoveCounter
-	ldr	r3, [r6, sl]	@  <variable>.x
-	ldr	r2, [r5, #44]	@  <variable>.mapX
-	rsb	r3, r1, r3
-	rsb	r2, r1, r2
-.L260:
-	str	r3, [r6, sl]	@  <variable>.x
-.L261:
-	str	r2, [r5, #44]	@  <variable>.mapX
-.L231:
-	ldr	r4, .L280+60
-	ldr	r1, [r4, #0]	@  enemySpriteIndex
-	ldr	r2, .L280+8
-	add	r1, r1, r1, asl #4
-	add	r1, r2, r1, asl #3	@  dir
-	add	r0, sp, #120
-	mov	r2, #136
-	mov	lr, pc
-	bx	r8
-	add	r1, r5, #16	@  dir
-	mov	r2, #120
-	mov	r0, sp
-	mov	lr, pc
-	bx	r8
+	bx	r7
 	ldmia	r5, {r0, r1, r2, r3}
-	ldr	ip, .L280+64
+	ldr	ip, .L390+48
 	mov	lr, pc
 	bx	ip
-	cmp	r0, #0
-	beq	.L224
+	mov	r3, r0
+	cmp	r3, #0
 	mov	r0, r5
-	ldr	r3, .L280+68
+	beq	.L339
 	mov	lr, pc
-	bx	r3
-	ldr	r0, [r4, #0]	@  enemySpriteIndex
-	ldr	r1, .L280+8
-	add	r0, r0, r0, asl #4
-	add	r0, r1, r0, asl #3
-	ldr	r2, .L280+68
+	bx	r9
+	ldr	r3, [r8, #0]	@  characterSpriteIndex
+	ldr	r0, .L390+8
+	add	r3, r3, r3, asl #3
+	add	r3, r0, r3, asl #4
+	ldr	r0, [r3, #52]	@  <variable>.hits
+	sub	r0, r0, #1
+	str	r0, [r3, #52]	@  <variable>.hits
+	ldr	r2, .L390+84
 	mov	lr, pc
 	bx	r2
-	b	.L224
-.L267:
-	ldr	r1, [fp, #-180]	@  projectileMoveCounter
-	ldr	r3, [r6, sl]	@  <variable>.x
-	ldr	r2, [r5, #44]	@  <variable>.mapX
-	add	r3, r3, r1
-	add	r2, r2, r1
-	b	.L260
-.L277:
-	ldr	r3, [r5, #116]	@  <variable>.dir
-	cmp	r3, #1
-	beq	.L278
-	cmp	r3, #0
-	bne	.L231
-	b	.L267
-.L278:
-	ldr	r1, .L280+8
-	ldr	r2, [r5, #44]	@  <variable>.mapX
-	ldr	r3, [r6, r1]	@  <variable>.x
-	ldr	r1, [fp, #-180]	@  projectileMoveCounter
-	rsb	r3, r1, r3
-	rsb	r2, r1, r2
-	ldr	r1, .L280+8
-	str	r3, [r6, r1]	@  <variable>.x
-	b	.L261
-.L275:
-	ldr	r3, .L280+4
-	ldr	r1, [r3, #0]	@  characterSpriteIndex
-	ldr	r3, .L280+8
-	add	r1, r1, r1, asl #4
-	add	r1, r3, r1, asl #3	@  dir
-	sub	r0, fp, #176
-	mov	r2, #136
-	ldr	r3, .L280+36
+	ldr	r3, [r8, #0]	@  characterSpriteIndex
+	ldr	r2, .L390+8
+	add	r3, r3, r3, asl #3
+	add	r3, r2, r3, asl #4
+	ldr	r2, [r3, #52]	@  <variable>.hits
+	cmp	r2, #0
+	bne	.L339
+	ldr	r3, .L390+88
 	mov	lr, pc
 	bx	r3
-	ldr	ip, [fp, #-60]	@  character.dir
-	cmp	ip, #1
-	beq	.L279
-	cmp	ip, #0
-	bne	.L218
-	sub	r0, fp, #176
+	b	.L339
+.L387:
+	ldr	r1, [sl, #0]	@  enemySpriteIndex
+	ldr	r3, .L390+8
+	add	r1, r1, r1, asl #3
+	add	r1, r3, r1, asl #4	@  dir
+	mov	lr, pc
+	bx	r7
+	add	r1, r5, #16	@  dir
+	mov	r2, #128
+	mov	r0, sp
+	mov	lr, pc
+	bx	r7
+	ldmia	r5, {r0, r1, r2, r3}
+	ldr	ip, .L390+48
+	mov	lr, pc
+	bx	ip
+	mov	r3, r0
+	cmp	r3, #0
+	mov	r0, r5
+	bne	.L388
+	ldr	r3, [r5, #84]	@  <variable>.isEnemy
+	cmp	r3, #0
+	beq	.L339
+	b	.L366
+.L388:
+	mov	lr, pc
+	bx	r9
+	ldr	r0, [sl, #0]	@  enemySpriteIndex
+	ldr	r2, .L390+8
+	add	r0, r0, r0, asl #3
+	add	r0, r2, r0, asl #4
+	mov	lr, pc
+	bx	r9
+	b	.L339
+.L385:
+	ldr	r3, .L390+40
+	ldr	r1, [r3, #0]	@  enemySpriteIndex
+	ldr	r0, .L390+8
+	add	r1, r1, r1, asl #3
+	add	r1, r0, r1, asl #4	@  dir
+	mov	r2, #144
+	ldr	r3, .L390+44
+	sub	r0, fp, #184
+	mov	lr, pc
+	bx	r3
+	ldr	ip, [fp, #-60]	@  enemy.dir
+	ldr	r1, [fp, #-180]	@  enemy.y
+	ldr	r3, [fp, #-136]	@  enemy.mapY
+	str	ip, [sp, #0]
+	mov	lr, #194
+	mov	ip, #1
+	add	r1, r1, #12	@  dir
+	add	r3, r3, #12
+	ldr	r0, [fp, #-184]	@  enemy.x
+	ldr	r2, [fp, #-140]	@  enemy.mapX
+	str	lr, [sp, #4]
+	str	ip, [sp, #8]
+	ldr	r4, .L390+92
+	mov	lr, pc
+	bx	r4
+	b	.L336
+.L384:
+	ldr	r3, .L390+4
+	ldr	r1, [r3, #0]	@  characterSpriteIndex
+	ldr	r3, .L390+8
+	add	r1, r1, r1, asl #3
+	add	r1, r3, r1, asl #4	@  dir
+	sub	r0, fp, #184
+	mov	r2, #144
+	ldr	r3, .L390+44
+	mov	lr, pc
+	bx	r3
+	ldr	lr, [fp, #-60]	@  character.dir
+	cmp	lr, #1
+	beq	.L389
+	cmp	lr, #0
+	bne	.L332
+	sub	r0, fp, #184
 	ldmia	r0, {r0, r1}	@ phole ldm
-	ldr	r2, [fp, #-132]	@  character.mapX
+	sub	r2, fp, #140
+	ldmia	r2, {r2, r3}	@ phole ldm
+	mov	ip, #192
+	stmib	sp, {ip, lr}	@ phole stm
+	str	lr, [sp, #0]
 	add	r0, r0, #2
 	add	r1, r1, #7	@  dir
 	add	r2, r2, #2
-.L259:
-	ldr	r3, [fp, #-128]	@  character.mapY
-	str	ip, [sp, #0]
 	add	r3, r3, #7
-	ldr	ip, .L280+72
+.L369:
+	ldr	ip, .L390+92
 	mov	lr, pc
 	bx	ip
-	b	.L218
-.L279:
-	sub	r0, fp, #176
+	b	.L332
+.L389:
+	sub	r0, fp, #184
 	ldmia	r0, {r0, r1}	@ phole ldm
-	ldr	r2, [fp, #-132]	@  character.mapX
+	sub	r2, fp, #140
+	ldmia	r2, {r2, r3}	@ phole ldm
+	str	lr, [sp, #0]
+	mov	ip, #192
+	mov	lr, #0
 	add	r0, r0, #20
 	add	r1, r1, #7	@  dir
 	add	r2, r2, #20
-	b	.L259
-.L213:
-	str	r6, [r4, #116]	@  dir,  <variable>.dir
-	ldr	r2, .L280+76
-	ldr	r5, [r4, #44]	@  prevX,  <variable>.mapX
-	mov	lr, pc
-	bx	r2
-	ldr	r3, [r8, #0]	@  characterSpriteIndex
-	add	r3, r3, r3, asl #4
-	add	r3, r7, r3, asl #3
-	ldr	r1, [r3, #44]	@  <variable>.mapX
-	cmp	r5, r1	@  prevX
-	beq	.L204
-	ldr	r2, .L280+16
-	ldr	r3, [r2, #0]	@  walkingCounter
-	rsb	r5, r1, r5	@  prevX
-	add	r3, r3, #1
-	str	r3, [r2, #0]	@  walkingCounter
-	str	r5, [fp, #-180]	@  projectileMoveCounter
-	mov	r9, r6	@  mapMoved,  dir
-	b	.L204
-.L256:
-	ldr	r4, .L280+4
-	b	.L205
-.L274:
-	ldr	r4, .L280+4
-	ldr	ip, [r4, #0]	@  characterSpriteIndex
-	ldr	r3, .L280+8
-	add	ip, ip, ip, asl #4
-	add	ip, r3, ip, asl #3
-	mov	r3, #96
-.L265:
-	ldr	lr, .L280+80
-	str	r3, [ip, #68]	@  <variable>.location
-	b	.L258
-.L273:
-	ldr	r4, .L280+4
-	ldr	ip, [r4, #0]	@  characterSpriteIndex
-	ldr	r2, .L280+8
-	add	ip, ip, ip, asl #4
-	add	ip, r2, ip, asl #3
-	b	.L266
-.L272:
-	ldr	r4, .L280+4
-	ldr	ip, [r4, #0]	@  characterSpriteIndex
-	ldr	r1, .L280+8
-	add	ip, ip, ip, asl #4
-	add	ip, r1, ip, asl #3
-	mov	r3, #64
-	b	.L265
-.L199:
-	str	r6, [r4, #116]	@  dir,  <variable>.dir
-	ldr	r2, .L280+84
-	ldr	r5, [r4, #44]	@  prevX,  <variable>.mapX
-	mov	lr, pc
-	bx	r2
-	ldr	r3, [r8, #0]	@  characterSpriteIndex
-	add	r3, r3, r3, asl #4
-	add	r3, r7, r3, asl #3
-	ldr	r1, [r3, #44]	@  <variable>.mapX
-	cmp	r5, r1	@  prevX
-	beq	.L190
-	ldr	r2, .L280+16
-	ldr	r3, [r2, #0]	@  walkingCounter
-	rsb	r1, r5, r1	@  prevX
-	add	r3, r3, #1
-	str	r3, [r2, #0]	@  walkingCounter
-	str	r1, [fp, #-180]	@  projectileMoveCounter
-	mov	r9, r6	@  mapMoved,  dir
-	b	.L190
-.L254:
-	ldr	r4, .L280+4
-	b	.L191
-.L271:
-	ldr	r4, .L280+4
-	ldr	ip, [r4, #0]	@  characterSpriteIndex
-	ldr	r3, .L280+8
-	add	ip, ip, ip, asl #4
-	add	ip, r3, ip, asl #3
-	mov	r3, #96
-.L263:
-	ldr	lr, .L280+88
-	str	r3, [ip, #68]	@  <variable>.location
-	b	.L257
-.L270:
-	ldr	r4, .L280+4
-	ldr	ip, [r4, #0]	@  characterSpriteIndex
-	ldr	r2, .L280+8
-	add	ip, ip, ip, asl #4
-	add	ip, r2, ip, asl #3
-	b	.L264
-.L269:
-	ldr	r4, .L280+4
-	ldr	ip, [r4, #0]	@  characterSpriteIndex
-	ldr	r1, .L280+8
-	add	ip, ip, ip, asl #4
-	add	ip, r1, ip, asl #3
-	mov	r3, #64
-	b	.L263
-.L268:
-	ldr	r4, .L280+4
-	ldr	r4, [r4, #0]	@  characterSpriteIndex
-	ldr	r3, .L280+8
-	add	r4, r4, r4, asl #4
-	add	r4, r3, r4, asl #3
+	add	r3, r3, #7
+	stmib	sp, {ip, lr}	@ phole stm
+	b	.L369
+.L383:
+	ldr	r3, [sl, #0]	@  characterSpriteIndex
+	add	r3, r3, r3, asl #3
+	mov	r3, r3, asl #4
+	add	r4, r3, r7
+	ldr	r5, [r4, #124]	@  dir,  <variable>.dir
 	add	r1, r4, #8	@  dir
+	mov	r2, #136
+	mov	r0, sp
+	ldr	r6, [r3, r7]	@  prevX,  <variable>.x
+	mov	lr, pc
+	bx	r8
+	ldmia	r4, {r2, r3}
+	mov	r0, r4
+	mov	r1, r5	@  dir
+	ldr	ip, .L390+80
+	mov	lr, pc
+	bx	ip
+	ldr	r3, [sl, #0]	@  characterSpriteIndex
+	add	r3, r3, r3, asl #3
+	ldr	r2, [r7, r3, asl #4]	@  <variable>.x
+	cmp	r6, r2	@  prevX
+	ldrne	r2, .L390+12
+	ldrne	r3, [r2, #0]	@  walkingCounter
+	addne	r3, r3, #1
+	strne	r3, [r2, #0]	@  walkingCounter
+	b	.L314
+.L324:
+	ldr	r3, .L390+40
+	ldr	r1, [r3, #0]	@  enemySpriteIndex
+	add	r1, r1, r1, asl #3
+	add	r1, r7, r1, asl #4	@  dir
+	mov	r2, #144
+	ldr	r4, .L390+44
+	add	r0, sp, #128
+	mov	lr, pc
+	bx	r4
+	add	r1, r5, #16	@  dir
 	mov	r2, #128
-	ldr	r3, .L280+36
+	mov	r0, sp
+	mov	lr, pc
+	bx	r4
+	ldmia	r5, {r0, r1, r2, r3}
+	ldr	ip, .L390+48
+	mov	lr, pc
+	bx	ip
+	cmp	r0, #0
+	bne	.L314
+	ldr	r3, [sl, #0]	@  characterSpriteIndex
+	add	r3, r3, r3, asl #3
+	add	r3, r7, r3, asl #4
+	str	r6, [r3, #124]	@  <variable>.dir
+	ldr	r2, .L390+96
+	ldr	r6, [r3, #44]	@  prevX,  <variable>.mapX
+	mov	lr, pc
+	bx	r2
+	ldr	r3, [sl, #0]	@  characterSpriteIndex
+	add	r3, r3, r3, asl #3
+	add	r3, r7, r3, asl #4
+	ldr	r0, [r3, #44]	@  <variable>.mapX
+	cmp	r6, r0	@  prevX
+	beq	.L314
+	ldr	r1, .L390+12
+	ldr	r3, [r1, #0]	@  walkingCounter
+	add	r3, r3, #1
+	rsb	r0, r0, r6	@  prevX
+	str	r3, [r1, #0]	@  walkingCounter
+	ldr	r2, .L390+100
+	mov	lr, pc
+	bx	r2
+	b	.L314
+.L365:
+	ldr	r4, .L390+4
+	b	.L315
+.L382:
+	ldr	r4, .L390+4
+	ldr	ip, [r4, #0]	@  characterSpriteIndex
+	ldr	r3, .L390+8
+	add	ip, ip, ip, asl #3
+	add	ip, r3, ip, asl #4
+	mov	r3, #96
+.L373:
+	ldr	lr, .L390+104
+	str	r3, [ip, #68]	@  <variable>.location
+	b	.L368
+.L381:
+	ldr	r4, .L390+4
+	ldr	ip, [r4, #0]	@  characterSpriteIndex
+	ldr	r2, .L390+8
+	add	ip, ip, ip, asl #3
+	add	ip, r2, ip, asl #4
+	b	.L374
+.L380:
+	ldr	r4, .L390+4
+	ldr	ip, [r4, #0]	@  characterSpriteIndex
+	ldr	r0, .L390+8
+	add	ip, ip, ip, asl #3
+	add	ip, r0, ip, asl #4
+	mov	r3, #64
+	b	.L373
+.L379:
+	ldr	r3, [sl, #0]	@  characterSpriteIndex
+	add	r3, r3, r3, asl #3
+	mov	r3, r3, asl #4
+	add	r4, r3, r7
+	ldr	r5, [r4, #124]	@  dir,  <variable>.dir
+	add	r1, r4, #8	@  dir
+	mov	r2, #136
+	mov	r0, sp
+	ldr	r6, [r3, r7]	@  prevX,  <variable>.x
+	mov	lr, pc
+	bx	r8
+	ldmia	r4, {r2, r3}
+	mov	r1, r5	@  dir
+	mov	r0, r4
+	ldr	ip, .L390+80
+	mov	lr, pc
+	bx	ip
+	ldr	r3, [sl, #0]	@  characterSpriteIndex
+	add	r3, r3, r3, asl #3
+	mov	r1, r3, asl #4
+	ldr	r2, [r1, r7]	@  <variable>.x
+	cmp	r6, r2	@  prevX
+	ldrne	r2, .L390+12
+	ldrne	r3, [r2, #0]	@  walkingCounter
+	addne	r3, r3, #1
+	strne	r3, [r2, #0]	@  walkingCounter
+	ldr	r3, [r1, r7]	@  <variable>.x
+	cmp	r3, #200
+	ble	.L295
+	ldr	r3, .L390+88
+	mov	lr, pc
+	bx	r3
+	b	.L295
+.L305:
+	ldr	r3, .L390+40
+	ldr	r1, [r3, #0]	@  enemySpriteIndex
+	add	r1, r1, r1, asl #3
+	add	r1, r7, r1, asl #4	@  dir
+	mov	r2, #144
+	ldr	r4, .L390+44
+	add	r0, sp, #128
+	mov	lr, pc
+	bx	r4
+	add	r1, r5, #16	@  dir
+	mov	r2, #128
+	mov	r0, sp
+	mov	lr, pc
+	bx	r4
+	ldmia	r5, {r0, r1, r2, r3}
+	ldr	ip, .L390+48
+	mov	lr, pc
+	bx	ip
+	cmp	r0, #0
+	bne	.L295
+	ldr	r3, [sl, #0]	@  characterSpriteIndex
+	add	r3, r3, r3, asl #3
+	add	r3, r7, r3, asl #4
+	str	r6, [r3, #124]	@  <variable>.dir
+	ldr	r2, .L390+108
+	ldr	r6, [r3, #44]	@  prevX,  <variable>.mapX
+	mov	lr, pc
+	bx	r2
+	ldr	r3, [sl, #0]	@  characterSpriteIndex
+	add	r3, r3, r3, asl #3
+	add	r3, r7, r3, asl #4
+	ldr	r0, [r3, #44]	@  <variable>.mapX
+	cmp	r6, r0	@  prevX
+	beq	.L295
+	ldr	r1, .L390+12
+	ldr	r3, [r1, #0]	@  walkingCounter
+	add	r3, r3, #1
+	rsb	r0, r0, r6	@  prevX
+	str	r3, [r1, #0]	@  walkingCounter
+	ldr	r2, .L390+100
+	mov	lr, pc
+	bx	r2
+	b	.L295
+.L363:
+	ldr	r4, .L390+4
+	b	.L296
+.L378:
+	ldr	r4, .L390+4
+	ldr	ip, [r4, #0]	@  characterSpriteIndex
+	ldr	r3, .L390+8
+	add	ip, ip, ip, asl #3
+	add	ip, r3, ip, asl #4
+	mov	r3, #96
+.L371:
+	ldr	lr, .L390+112
+	str	r3, [ip, #68]	@  <variable>.location
+	b	.L367
+.L377:
+	ldr	r4, .L390+4
+	ldr	ip, [r4, #0]	@  characterSpriteIndex
+	ldr	r2, .L390+8
+	add	ip, ip, ip, asl #3
+	add	ip, r2, ip, asl #4
+	b	.L372
+.L376:
+	ldr	r4, .L390+4
+	ldr	ip, [r4, #0]	@  characterSpriteIndex
+	ldr	r0, .L390+8
+	add	ip, ip, ip, asl #3
+	add	ip, r0, ip, asl #4
+	mov	r3, #64
+	b	.L371
+.L375:
+	ldr	r4, .L390+4
+	ldr	r4, [r4, #0]	@  characterSpriteIndex
+	ldr	r2, .L390+8
+	add	r4, r4, r4, asl #3
+	add	r4, r2, r4, asl #4
+	add	r1, r4, #8	@  dir
+	mov	r2, #136
+	ldr	r3, .L390+44
 	mov	r0, sp
 	mov	lr, pc
 	bx	r3
 	ldmia	r4, {r2, r3}
 	mov	r0, r4
 	mov	r1, #2
-	ldr	ip, .L280+40
+	ldr	ip, .L390+80
 	mov	lr, pc
 	bx	ip
 	ldr	r3, [r5, #0]	@  jumpDuration
 	add	r3, r3, #1
 	str	r3, [r5, #0]	@  jumpDuration
-	b	.L189
-.L281:
+	b	.L294
+.L391:
 	.align	2
-.L280:
+.L390:
 	.word	isJumping
 	.word	characterSpriteIndex
 	.word	sprites
-	.word	jumpDuration
 	.word	walkingCounter
+	.word	jumpDuration
 	.word	Gravity
 	.word	1717986919
 	.word	characterStandingRightBBox
-	.word	screenRight
+	.word	tookStep
+	.word	shipScreenRight
+	.word	enemySpriteIndex
 	.word	memcpy
-	.word	Move
+	.word	HitTest
 	.word	characterStandingLeftBBox
-	.word	screenLeft
+	.word	shipScreenLeft
+	.word	rand
+	.word	1374389535
+	.word	RemoveSprite
 	.word	regY
 	.word	regX
-	.word	enemySpriteIndex
-	.word	HitTest
-	.word	RemoveSprite
+	.word	Move
+	.word	ChangePlayerHealth
+	.word	InitializeContinueGame
 	.word	Shoot
 	.word	MoveMapLeft
+	.word	CounterPlayerMovement
 	.word	characterWalkingLeftBBox
 	.word	MoveMapRight
 	.word	characterWalkingRightBBox
-	.size	Update, .-Update
+	.size	ShipUpdate, .-ShipUpdate
 	.align	2
 	.global	main
 	.type	main, %function
@@ -16355,12 +21020,26 @@ main:
 	@ args = 0, pretend = 0, frame = 0
 	@ frame_needed = 1, uses_anonymous_args = 0
 	mov	ip, sp
-	stmfd	sp!, {fp, ip, lr, pc}
+	stmfd	sp!, {r4, r5, fp, ip, lr, pc}
 	sub	fp, ip, #4
-	bl	Initialize
-.L286:
-	bl	Update
-	b	.L286
+	bl	ShipInitialize
+	ldr	r4, .L401
+	ldr	r5, .L401+4
+.L399:
+	ldr	r3, [r4, #0]	@  gameOver
+	cmp	r3, #0
+	beq	.L400
+	mov	lr, pc
+	bx	r5
+	b	.L399
+.L400:
+	bl	ShipUpdate
+	b	.L399
+.L402:
+	.align	2
+.L401:
+	.word	gameOver
+	.word	GameOverUpdate
 	.size	main, .-main
 	.align	2
 	.global	Gravity
@@ -16371,78 +21050,76 @@ Gravity:
 	@ frame_needed = 1, uses_anonymous_args = 0
 	mov	ip, sp
 	stmfd	sp!, {r4, r5, r6, r7, fp, ip, lr, pc}
+	ldr	r5, .L419
 	sub	fp, ip, #4
-	sub	sp, sp, #120
-	ldr	r6, .L303
-	ldr	r3, [r6, #0]	@  numberOfSprites
-	mov	r5, #0	@  i
-	cmp	r5, r3	@  i
-	bge	.L289
-	ldr	r4, .L303+4
-	mov	r7, r4
-.L298:
+	sub	sp, sp, #128
+	mov	r6, #0	@  i
+	mov	r4, r5
+.L414:
 	ldr	r3, [r4, #72]	@  <variable>.noGravity
 	cmp	r3, #0
-	add	r1, r4, #16
-	mov	r2, #120
+	bne	.L406
+	ldr	r3, [r4, #92]	@  <variable>.isRemoved
+	cmp	r3, #0
+	add	r1, r5, #16
+	mov	r2, #128
 	mov	r0, sp
-	add	r5, r5, #1	@  i,  i
-	beq	.L301
-.L290:
-	ldr	r3, [r6, #0]	@  numberOfSprites
-	cmp	r5, r3	@  i
-	add	r4, r4, #136
-	blt	.L298
-.L289:
+	beq	.L417
+.L406:
+	add	r6, r6, #1	@  i,  i
+	cmp	r6, #127	@  i
+	add	r5, r5, #144
+	add	r4, r4, #144
+	ble	.L414
+.L405:
 	ldmea	fp, {r4, r5, r6, r7, fp, sp, lr}
 	bx	lr
-.L301:
-	ldr	r3, .L303+8
+.L417:
+	ldr	r3, .L419+4
 	mov	lr, pc
 	bx	r3
-	ldmia	r4, {r0, r1, r2, r3}
-	ldr	ip, .L303+12
+	ldmia	r5, {r0, r1, r2, r3}
+	ldr	ip, .L419+8
 	mov	lr, pc
 	bx	ip
 	cmp	r0, #0
-	beq	.L302
+	beq	.L418
 	ldr	r3, [r4, #4]	@  <variable>.y
 	ldr	r2, [r4, #48]	@  <variable>.mapY
 	add	r3, r3, #1
 	add	r2, r2, #1
 	str	r3, [r4, #4]	@  <variable>.y
 	str	r2, [r4, #48]	@  <variable>.mapY
-	b	.L290
-.L302:
-	ldr	r4, .L303+16
-	ldr	r3, [r4, #0]	@  isJumping
+	b	.L406
+.L418:
+	ldr	r7, .L419+12
+	ldr	r3, [r7, #0]	@  isJumping
 	cmp	r3, #0
-	beq	.L289
-	ldr	r3, .L303+20
+	beq	.L405
+	ldr	r3, .L419+16
 	ldr	r2, [r3, #0]	@  characterSpriteIndex
-	add	r2, r2, r2, asl #4
-	add	lr, r7, r2, asl #3
-	ldr	r2, [lr, #116]	@  <variable>.dir
+	cmp	r6, r2	@  i
+	bne	.L405
+	ldr	r2, [r4, #124]	@  <variable>.dir
 	mov	r3, #32
 	cmp	r2, #1
-	str	r3, [lr, #68]	@  <variable>.location
-	ldreq	ip, .L303+24
-	beq	.L300
+	str	r3, [r4, #68]	@  <variable>.location
+	ldreq	ip, .L419+20
+	beq	.L416
 	cmp	r2, #0
-	bne	.L296
-	ldr	ip, .L303+28
-.L300:
+	bne	.L412
+	ldr	ip, .L419+24
+.L416:
 	ldmia	ip, {r0, r1, r2, r3}
-	add	lr, lr, #120
+	add	lr, r5, #128
 	stmia	lr, {r0, r1, r2, r3}
-.L296:
+.L412:
 	mov	r3, #0
-	str	r3, [r4, #0]	@  isJumping
-	b	.L289
-.L304:
+	str	r3, [r7, #0]	@  isJumping
+	b	.L405
+.L420:
 	.align	2
-.L303:
-	.word	numberOfSprites
+.L419:
 	.word	sprites
 	.word	memcpy
 	.word	CanMoveDown
@@ -16472,7 +21149,7 @@ GetNextTile:
 	mov	r3, r0, asr #31	@  x
 	add	r0, r0, r3, lsr #29	@  x
 	mov	r1, r1, asr #3
-	ldr	r3, .L306
+	ldr	r3, .L422
 	mov	r1, r1, asl #5
 	add	r1, r1, r0, asr #3
 	ldr	r2, [r3, #0]	@  bg1map
@@ -16480,9 +21157,9 @@ GetNextTile:
 	ldrh	r0, [r1, r2]	@  x
 	@ lr needed for prologue
 	bx	lr
-.L307:
+.L423:
 	.align	2
-.L306:
+.L422:
 	.word	bg1map
 	.size	GetNextTile, .-GetNextTile
 	.align	2
@@ -16490,136 +21167,134 @@ GetNextTile:
 	.type	Shoot, %function
 Shoot:
 	@ Function supports interworking.
-	@ args = 4, pretend = 0, frame = 28
+	@ args = 12, pretend = 0, frame = 20
 	@ frame_needed = 1, uses_anonymous_args = 0
 	mov	ip, sp
 	stmfd	sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr, pc}
 	sub	fp, ip, #4
-	sub	sp, sp, #28
-	str	r0, [fp, #-60]	@  startX
-	str	r1, [fp, #-64]	@  startY
-	ldr	r0, .L309
+	sub	sp, sp, #20
+	mov	r9, r0	@  startX
+	mov	r7, r1	@  startY
+	str	r2, [fp, #-60]	@  mapX
 	mov	r1, #128
-	mov	r8, r2	@  mapX
-	str	r3, [fp, #-68]	@  mapY
+	mov	r2, #10
+	ldr	r0, .L425
+	mov	sl, r3	@  mapY
 	bl	GetNextFreePosition
-	ldr	sl, .L309+4
-	mov	r7, #0
-	ldr	r5, [sl, #0]	@  numberOfSprites
-	mov	r3, #8
+	mov	r3, #4
+	str	r3, [fp, #-52]	@  laserBBox.y
+	mov	r6, #0
+	mov	r2, #8
+	mov	r3, #2
 	str	r3, [fp, #-44]	@  laserBBox.ysize
-	str	r3, [fp, #-48]	@  laserBBox.xsize
-	str	r7, [fp, #-56]	@  laserBBox.x
-	str	r7, [fp, #-52]	@  laserBBox.y
-	add	r4, r0, r0, asl #4	@  location,  location
-	ldr	r3, .L309
-	mov	r4, r4, asl #3
+	str	r2, [fp, #-48]	@  laserBBox.xsize
+	str	r6, [fp, #-56]	@  laserBBox.x
+	add	r4, r0, r0, asl #3	@  location,  location
+	ldr	r3, .L425
+	mov	r4, r4, asl #4
 	sub	ip, fp, #56
-	add	r5, r5, #1
 	add	lr, r4, r3
 	ldmia	ip, {r0, r1, r2, r3}
-	str	r5, [sl, #0]	@  numberOfSprites
-	ldr	ip, [fp, #-60]	@  startX
-	ldr	r5, .L309
-	str	ip, [r4, r5]	@  <variable>.x
-	ldr	ip, [fp, #-68]	@  mapY
-	ldr	r5, [fp, #-64]	@  startY
-	str	ip, [lr, #48]	@  <variable>.mapY
-	add	r6, lr, #120
-	mov	ip, #160
-	str	r5, [lr, #4]	@  <variable>.y
-	str	r8, [lr, #44]	@  mapX,  <variable>.mapX
-	str	ip, [lr, #68]	@  <variable>.location
-	str	r7, [lr, #8]	@  <variable>.size
-	str	r7, [lr, #12]	@  <variable>.shape
-	stmia	r6, {r0, r1, r2, r3}
-	ldr	r3, [fp, #4]	@  dir,  dir
-	mov	r9, #1
-	str	r3, [lr, #116]	@  dir,  <variable>.dir
+	ldr	ip, .L425
+	str	r9, [r4, ip]	@  startX,  <variable>.x
+	ldr	ip, [fp, #-60]	@  mapX
+	str	ip, [lr, #44]	@  <variable>.mapX
+	ldr	ip, [fp, #8]	@  spriteLoc,  spriteLoc
+	add	r5, lr, #128
+	str	r7, [lr, #4]	@  startY,  <variable>.y
+	str	sl, [lr, #48]	@  mapY,  <variable>.mapY
+	str	ip, [lr, #68]	@  spriteLoc,  <variable>.location
+	str	r6, [lr, #8]	@  <variable>.size
+	str	r6, [lr, #12]	@  <variable>.shape
+	stmia	r5, {r0, r1, r2, r3}
+	ldr	r3, [fp, #12]	@  isEnemy,  isEnemy
+	str	r3, [lr, #84]	@  isEnemy,  <variable>.isEnemy
 	mov	r3, #5
-	str	r9, [lr, #76]	@  <variable>.isProjectile
-	str	r3, [lr, #80]	@  <variable>.speed
-	str	r7, [lr, #84]	@  <variable>.isRemoved
-	str	r9, [lr, #72]	@  <variable>.noGravity
+	str	r3, [lr, #88]	@  <variable>.speed
+	ldr	r3, [fp, #4]	@  dir,  dir
+	mov	r8, #1
+	str	r8, [lr, #76]	@  <variable>.isProjectile
+	str	r6, [lr, #92]	@  <variable>.isRemoved
+	str	r3, [lr, #124]	@  dir,  <variable>.dir
+	str	r8, [lr, #72]	@  <variable>.noGravity
 	ldmea	fp, {r4, r5, r6, r7, r8, r9, sl, fp, sp, lr}
 	bx	lr
-.L310:
+.L426:
 	.align	2
-.L309:
+.L425:
 	.word	sprites
-	.word	numberOfSprites
 	.size	Shoot, .-Shoot
 	.align	2
 	.global	Move
 	.type	Move, %function
 Move:
 	@ Function supports interworking.
-	@ args = 136, pretend = 8, frame = 0
+	@ args = 144, pretend = 8, frame = 0
 	@ frame_needed = 1, uses_anonymous_args = 0
 	mov	ip, sp
 	sub	sp, sp, #8
 	stmfd	sp!, {r4, r5, r6, fp, ip, lr, pc}
 	sub	fp, ip, #12
-	sub	sp, sp, #120
+	sub	sp, sp, #128
 	add	r4, fp, #4	@  direction
 	cmp	r1, #1	@  direction
 	mov	r5, r0	@  direction
 	stmia	r4, {r2, r3}	@  direction
-	beq	.L318
-	bcc	.L313
+	beq	.L434
+	bcc	.L429
 	cmp	r1, #2	@  direction
-	beq	.L322
-.L328:
-	ldr	r6, .L331
-.L312:
+	beq	.L439
+.L445:
+	ldr	r6, .L449
+.L428:
 	mov	r1, r4	@  direction
 	mov	r0, r5	@  direction
-	mov	r2, #136
+	mov	r2, #144
 	mov	lr, pc
 	bx	r6
 	mov	r0, r5	@  direction
 	ldmea	fp, {r4, r5, r6, fp, sp, lr}
 	bx	lr
-.L322:
+.L439:
 	ldr	r3, [fp, #52]	@  sprite.mapY
 	cmp	r3, #0
-	ble	.L328
+	ble	.L445
 	add	r1, fp, #20
-	mov	r2, #120
+	mov	r2, #128
 	mov	r0, sp
-	ldr	r6, .L331
+	ldr	r6, .L449
 	mov	lr, pc
 	bx	r6
 	ldmia	r4, {r0, r1, r2, r3}	@  direction
-	ldr	ip, .L331+4
+	ldr	ip, .L449+4
 	mov	lr, pc
 	bx	ip
 	cmp	r0, #0	@  direction
-	beq	.L312
+	beq	.L428
 	ldr	r2, [fp, #8]	@  sprite.y
 	ldr	r3, [fp, #52]	@  sprite.mapY
 	sub	r2, r2, #1
 	sub	r3, r3, #1
 	str	r2, [fp, #8]	@  sprite.y
 	str	r3, [fp, #52]	@  sprite.mapY
-	b	.L312
-.L313:
+	b	.L428
+.L429:
 	ldr	r3, [fp, #48]	@  sprite.mapX
 	cmp	r3, #0
-	ble	.L327
+	ble	.L444
 	add	r1, fp, #20
-	mov	r2, #120
+	mov	r2, #128
 	mov	r0, sp
-	ldr	r6, .L331
+	ldr	r6, .L449
 	mov	lr, pc
 	bx	r6
 	ldmia	r4, {r0, r1, r2, r3}	@  direction
-	ldr	ip, .L331+8
+	ldr	ip, .L449+8
 	mov	lr, pc
 	bx	ip
 	cmp	r0, #0	@  direction
-	beq	.L319
-	ldr	r0, [fp, #84]	@  sprite.speed
+	beq	.L435
+	ldr	r0, [fp, #92]	@  sprite.speed
 	ldr	r1, [fp, #48]	@  sprite.mapX
 	ldr	r2, [fp, #4]	@  sprite.x
 	ldr	r3, [fp, #80]	@  sprite.isProjectile
@@ -16628,53 +21303,59 @@ Move:
 	cmp	r3, #0
 	str	r1, [fp, #48]	@  sprite.mapX
 	str	r2, [fp, #4]	@  sprite.x
-	beq	.L312
+	beq	.L428
 	cmp	r2, #0
-	moveq	r0, r4	@  direction
-	bne	.L312
-.L330:
-	ldr	r3, .L331+12
+	bne	.L428
+.L447:
+	mov	r0, r4	@  direction
+.L446:
+	ldr	r3, .L449+12
 	mov	lr, pc
 	bx	r3
-	b	.L312
-.L319:
+	b	.L428
+.L435:
 	ldr	r3, [fp, #80]	@  sprite.isProjectile
 	cmp	r3, #0
-	beq	.L312
+	beq	.L428
 	add	r0, fp, #4
-	b	.L330
-.L327:
-	ldr	r6, .L331
-	b	.L319
-.L318:
-	mov	r3, #508
+	b	.L446
+.L444:
+	ldr	r6, .L449
+	b	.L435
+.L434:
+	mov	r3, #796
 	ldr	r2, [fp, #48]	@  sprite.mapX
 	add	r3, r3, #2
 	cmp	r2, r3
-	bgt	.L327
+	bgt	.L444
 	add	r1, fp, #20
-	mov	r2, #120
+	mov	r2, #128
 	mov	r0, sp
-	ldr	r6, .L331
+	ldr	r6, .L449
 	mov	lr, pc
 	bx	r6
 	ldmia	r4, {r0, r1, r2, r3}	@  direction
-	ldr	ip, .L331+16
+	ldr	ip, .L449+16
 	mov	lr, pc
 	bx	ip
 	cmp	r0, #0	@  direction
-	beq	.L319
-	ldr	r1, [fp, #84]	@  sprite.speed
-	ldr	r2, [fp, #48]	@  sprite.mapX
-	ldr	r3, [fp, #4]	@  sprite.x
-	add	r2, r2, r1
-	add	r3, r3, r1
-	str	r3, [fp, #4]	@  sprite.x
-	str	r2, [fp, #48]	@  sprite.mapX
-	b	.L312
-.L332:
+	beq	.L435
+	ldr	r0, [fp, #92]	@  sprite.speed
+	ldr	r1, [fp, #48]	@  sprite.mapX
+	ldr	r2, [fp, #4]	@  sprite.x
+	ldr	r3, [fp, #80]	@  sprite.isProjectile
+	add	r1, r1, r0
+	add	r2, r2, r0
+	cmp	r3, #0
+	str	r1, [fp, #48]	@  sprite.mapX
+	str	r2, [fp, #4]	@  sprite.x
+	beq	.L428
+	cmp	r2, #240
+	ble	.L428
+	b	.L447
+.L450:
 	.align	2
-.L331:
+.L449:
 	.word	memcpy
 	.word	CanMoveUp
 	.word	CanMoveLeft
@@ -16691,44 +21372,44 @@ MoveMapLeft:
 	mov	ip, sp
 	stmfd	sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr, pc}
 	sub	fp, ip, #4
-	sub	sp, sp, #120
-	ldr	r9, .L338
-	ldr	r3, [r9, #0]	@  screenLeft
+	sub	sp, sp, #128
+	ldr	r9, .L456
+	ldr	r3, [r9, #0]	@  shipScreenLeft
 	cmp	r3, #0
-	ldr	r5, .L338+4
-	ldr	r6, .L338+8
-	mov	r2, #120
+	ldr	r5, .L456+4
+	ldr	r6, .L456+8
+	mov	r2, #128
 	mov	r0, sp
-	ble	.L333
+	ble	.L451
 	ldr	r4, [r5, #0]	@  characterSpriteIndex
-	add	r4, r4, r4, asl #4
-	add	r4, r6, r4, asl #3
+	add	r4, r4, r4, asl #3
+	add	r4, r6, r4, asl #4
 	add	r1, r4, #16
-	ldr	r3, .L338+12
+	ldr	r3, .L456+12
 	mov	lr, pc
 	bx	r3
 	ldmia	r4, {r0, r1, r2, r3}
-	ldr	ip, .L338+16
+	ldr	ip, .L456+16
 	mov	lr, pc
 	bx	ip
 	cmp	r0, #0
-	beq	.L333
-	ldr	r2, .L338+20
-	ldr	ip, [r9, #0]	@  screenLeft
+	beq	.L451
+	ldr	r2, .L456+20
+	ldr	ip, [r9, #0]	@  shipScreenLeft
 	ldr	r3, [r5, #0]	@  characterSpriteIndex
-	ldr	r4, [r2, #0]	@  mapLeft
-	ldr	r2, .L338+24
+	ldr	r4, [r2, #0]	@  shipMapLeft
+	ldr	r2, .L456+24
 	sub	r7, ip, #1
-	add	r3, r3, r3, asl #4
+	add	r3, r3, r3, asl #3
 	ldr	lr, [r2, #0]	@  regX
-	add	r8, r6, r3, asl #3
-	ldr	r2, .L338+28
+	add	r8, r6, r3, asl #4
+	ldr	r2, .L456+28
 	mov	r3, r7, asr #31
 	add	r3, r7, r3, lsr #29
-	ldr	r5, [r2, #0]	@  screenRight
+	ldr	r5, [r2, #0]	@  shipScreenRight
 	mov	r6, r3, asr #3
 	mov	r2, ip, asr #31
-	ldr	r3, .L338+24
+	ldr	r3, .L456+24
 	add	ip, ip, r2, lsr #29
 	sub	lr, lr, #1
 	cmp	r4, #0
@@ -16738,79 +21419,79 @@ MoveMapLeft:
 	sub	r5, r5, #1
 	sub	r4, r4, #1
 	str	lr, [r3, #0]	@  regX
-	ble	.L335
-	ldr	ip, .L338+32
-	ldr	r3, [ip, #0]	@  mapRight
-	ldr	lr, .L338+20
+	ble	.L453
+	ldr	ip, .L456+32
+	ldr	r3, [ip, #0]	@  shipMapRight
+	ldr	lr, .L456+20
 	sub	r3, r3, #1
-	str	r4, [lr, #0]	@  mapLeft
-	str	r3, [ip, #0]	@  mapRight
-.L335:
-	ldr	r2, .L338+28
+	str	r4, [lr, #0]	@  shipMapLeft
+	str	r3, [ip, #0]	@  shipMapRight
+.L453:
+	ldr	r2, .L456+28
 	ldr	r3, [r8, #44]	@  <variable>.mapX
-	ldr	ip, [r8, #80]	@  <variable>.speed
-	ldr	lr, .L338+36
-	str	r5, [r2, #0]	@  screenRight
-	ldr	r2, .L338+40
+	ldr	ip, [r8, #88]	@  <variable>.speed
+	ldr	lr, .L456+36
+	str	r5, [r2, #0]	@  shipScreenRight
+	ldr	r2, .L456+40
 	rsb	r3, ip, r3
 	cmp	r6, sl
-	str	sl, [r2, #0]	@  prevColumn
-	str	r7, [r9, #0]	@  screenLeft
-	str	r6, [lr, #0]	@  nextColumn
+	str	sl, [r2, #0]	@  shipPrevColumn
+	str	r7, [r9, #0]	@  shipScreenLeft
+	str	r6, [lr, #0]	@  shipNextColumn
 	str	r3, [r8, #44]	@  <variable>.mapX
-	blt	.L337
-.L333:
+	blt	.L455
+.L451:
 	ldmea	fp, {r4, r5, r6, r7, r8, r9, sl, fp, sp, lr}
 	bx	lr
-.L337:
-	ldr	r3, .L338+44
-	ldr	ip, .L338+48
-	ldr	r2, [r3, #0]	@  mapTop
-	ldr	lr, .L338+52
-	ldr	r3, [ip, #0]	@  mapBottom
-	ldr	ip, .L338+56
+.L455:
+	ldr	r3, .L456+44
+	ldr	ip, .L456+48
+	ldr	r2, [r3, #0]	@  shipMapTop
+	ldr	lr, .L456+52
+	ldr	r3, [ip, #0]	@  shipMapBottom
+	ldr	ip, .L456+56
 	ldr	r4, [ip, #0]	@  map
 	ldr	ip, [lr, #0]	@  bg0map
-	mov	lr, #64
+	mov	lr, #100
 	stmia	sp, {r4, ip, lr}	@ phole stm
-	ldr	ip, .L338+60
+	ldr	ip, .L456+60
 	mov	lr, pc
 	bx	ip
-	ldr	lr, .L338+36
-	ldr	r3, .L338+44
-	ldr	ip, .L338+48
-	ldr	r1, [lr, #0]	@  nextColumn
-	ldr	r2, [r3, #0]	@  mapTop
-	ldr	lr, .L338+64
-	ldr	r3, [ip, #0]	@  mapBottom
-	ldr	ip, .L338+68
+	ldr	lr, .L456+36
+	ldr	r3, .L456+44
+	ldr	ip, .L456+48
+	ldr	r1, [lr, #0]	@  shipNextColumn
+	ldr	r2, [r3, #0]	@  shipMapTop
+	ldr	lr, .L456+64
+	ldr	r3, [ip, #0]	@  shipMapBottom
+	ldr	ip, .L456+68
 	ldr	r4, [ip, #0]	@  hitMap
 	ldr	ip, [lr, #0]	@  bg1map
-	mov	lr, #64
+	mov	lr, #100
 	str	ip, [sp, #4]
-	ldr	r0, [r9, #0]	@  screenLeft
+	ldr	r0, [r9, #0]	@  shipScreenLeft
 	str	r4, [sp, #0]
 	str	lr, [sp, #8]
-	ldr	ip, .L338+60
+	ldr	ip, .L456+60
 	mov	lr, pc
 	bx	ip
-	b	.L333
-.L339:
+	b	.L451
+.L457:
 	.align	2
-.L338:
-	.word	screenLeft
+.L456:
+	.word	shipScreenLeft
 	.word	characterSpriteIndex
 	.word	sprites
 	.word	memcpy
 	.word	CanMoveLeft
-	.word	mapLeft
+	.word	shipMapLeft
 	.word	regX
-	.word	screenRight
-	.word	mapRight
-	.word	nextColumn
-	.word	prevColumn
-	.word	mapTop
-	.word	mapBottom
+	.word	shipScreenRight
+	.word	shipMapRight
+	.word	shipNextColumn
+	.word	shipPrevColumn
+	.word	shipMapTop
+	.word	shipMapBottom
 	.word	bg0map
 	.word	map
 	.word	CopyColumnToBackground
@@ -16827,432 +21508,129 @@ MoveMapRight:
 	mov	ip, sp
 	stmfd	sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr, pc}
 	sub	fp, ip, #4
-	sub	sp, sp, #120
-	ldr	r7, .L345
-	ldr	r3, [r7, #0]	@  screenRight
-	mov	r5, #508
+	sub	sp, sp, #128
+	ldr	r7, .L463
+	ldr	r3, [r7, #0]	@  shipScreenRight
+	mov	r5, #796
 	add	r5, r5, #2
 	cmp	r3, r5
-	ldr	r6, .L345+4
-	ldr	r8, .L345+8
-	mov	r2, #120
+	ldr	r6, .L463+4
+	ldr	r8, .L463+8
+	mov	r2, #128
 	mov	r0, sp
-	ble	.L344
-.L340:
+	ble	.L462
+.L458:
 	ldmea	fp, {r4, r5, r6, r7, r8, r9, sl, fp, sp, lr}
 	bx	lr
-.L344:
+.L462:
 	ldr	r4, [r6, #0]	@  characterSpriteIndex
-	add	r4, r4, r4, asl #4
-	add	r4, r8, r4, asl #3
+	add	r4, r4, r4, asl #3
+	add	r4, r8, r4, asl #4
 	add	r1, r4, #16
-	ldr	r3, .L345+12
+	ldr	r3, .L463+12
 	mov	lr, pc
 	bx	r3
 	ldmia	r4, {r0, r1, r2, r3}
-	ldr	ip, .L345+16
+	ldr	ip, .L463+16
 	mov	lr, pc
 	bx	ip
 	cmp	r0, #0
-	ldr	lr, .L345+20
-	ldr	r4, .L345+24
-	ldr	sl, .L345+28
-	beq	.L340
-	ldr	r0, [r4, #0]	@  mapRight
+	ldr	lr, .L463+20
+	ldr	r4, .L463+24
+	ldr	sl, .L463+28
+	beq	.L458
+	ldr	r0, [r4, #0]	@  shipMapRight
 	ldr	r3, [r6, #0]	@  characterSpriteIndex
-	ldr	r9, .L345+32
+	ldr	r9, .L463+32
 	cmp	r0, r5
-	add	r3, r3, r3, asl #4
-	add	r6, r8, r3, asl #3
+	add	r3, r3, r3, asl #3
+	add	r6, r8, r3, asl #4
 	ldr	r2, [lr, #0]	@  regX
-	ldrle	r3, [r9, #0]	@  mapLeft
+	ldrle	r3, [r9, #0]	@  shipMapLeft
 	add	ip, r0, #1
 	addle	r3, r3, #1
 	add	r2, r2, #1
 	str	r2, [lr, #0]	@  regX
-	strle	ip, [r4, #0]	@  mapRight
-	strle	r3, [r9, #0]	@  mapLeft
-	ldr	ip, [r7, #0]	@  screenRight
+	strle	ip, [r4, #0]	@  shipMapRight
+	strle	r3, [r9, #0]	@  shipMapLeft
+	ldr	ip, [r7, #0]	@  shipScreenRight
 	ldr	r4, [r6, #44]	@  <variable>.mapX
-	ldr	r5, [r6, #80]	@  <variable>.speed
+	ldr	r5, [r6, #88]	@  <variable>.speed
 	add	lr, ip, #1
-	ldr	r1, [sl, #0]	@  screenLeft
+	ldr	r1, [sl, #0]	@  shipScreenLeft
 	mov	r3, ip, asr #31
 	add	ip, ip, r3, lsr #29
 	mov	r2, lr, asr #31
-	ldr	r3, .L345+36
+	ldr	r3, .L463+36
 	add	r1, r1, #1
 	mov	ip, ip, asr #3
 	add	r2, lr, r2, lsr #29
 	add	r4, r4, r5
 	mov	r2, r2, asr #3
-	str	r1, [sl, #0]	@  screenLeft
+	str	r1, [sl, #0]	@  shipScreenLeft
 	str	r4, [r6, #44]	@  <variable>.mapX
-	str	ip, [r3, #0]	@  prevColumn
-	ldr	r3, .L345+40
+	str	ip, [r3, #0]	@  shipPrevColumn
+	ldr	r3, .L463+40
 	cmp	r2, ip
 	mov	r0, lr
 	mov	r1, r2
-	str	lr, [r7, #0]	@  screenRight
-	str	r2, [r3, #0]	@  nextColumn
-	ble	.L340
-	ldr	ip, .L345+44
-	ldr	lr, .L345+48
-	ldr	r2, [ip, #0]	@  mapTop
-	ldr	r3, [lr, #0]	@  mapBottom
-	ldr	ip, .L345+52
-	ldr	lr, .L345+56
+	str	lr, [r7, #0]	@  shipScreenRight
+	str	r2, [r3, #0]	@  shipNextColumn
+	ble	.L458
+	ldr	ip, .L463+44
+	ldr	lr, .L463+48
+	ldr	r2, [ip, #0]	@  shipMapTop
+	ldr	r3, [lr, #0]	@  shipMapBottom
+	ldr	ip, .L463+52
+	ldr	lr, .L463+56
 	ldr	r4, [ip, #0]	@  map
 	ldr	ip, [lr, #0]	@  bg0map
-	mov	lr, #64
+	mov	lr, #100
 	stmia	sp, {r4, ip, lr}	@ phole stm
-	ldr	ip, .L345+60
+	ldr	ip, .L463+60
 	mov	lr, pc
 	bx	ip
-	ldr	lr, .L345+40
-	ldr	r3, .L345+44
-	ldr	ip, .L345+48
-	ldr	r1, [lr, #0]	@  nextColumn
-	ldr	r2, [r3, #0]	@  mapTop
-	ldr	lr, .L345+64
-	ldr	r3, [ip, #0]	@  mapBottom
-	ldr	ip, .L345+68
+	ldr	lr, .L463+40
+	ldr	r3, .L463+44
+	ldr	ip, .L463+48
+	ldr	r1, [lr, #0]	@  shipNextColumn
+	ldr	r2, [r3, #0]	@  shipMapTop
+	ldr	lr, .L463+64
+	ldr	r3, [ip, #0]	@  shipMapBottom
+	ldr	ip, .L463+68
 	ldr	r4, [ip, #0]	@  hitMap
 	ldr	ip, [lr, #0]	@  bg1map
-	mov	lr, #64
+	mov	lr, #100
 	str	ip, [sp, #4]
-	ldr	r0, [r7, #0]	@  screenRight
+	ldr	r0, [r7, #0]	@  shipScreenRight
 	str	r4, [sp, #0]
 	str	lr, [sp, #8]
-	ldr	ip, .L345+60
+	ldr	ip, .L463+60
 	mov	lr, pc
 	bx	ip
-	b	.L340
-.L346:
+	b	.L458
+.L464:
 	.align	2
-.L345:
-	.word	screenRight
+.L463:
+	.word	shipScreenRight
 	.word	characterSpriteIndex
 	.word	sprites
 	.word	memcpy
 	.word	CanMoveRight
 	.word	regX
-	.word	mapRight
-	.word	screenLeft
-	.word	mapLeft
-	.word	prevColumn
-	.word	nextColumn
-	.word	mapTop
-	.word	mapBottom
+	.word	shipMapRight
+	.word	shipScreenLeft
+	.word	shipMapLeft
+	.word	shipPrevColumn
+	.word	shipNextColumn
+	.word	shipMapTop
+	.word	shipMapBottom
 	.word	map
 	.word	bg0map
 	.word	CopyColumnToBackground
 	.word	bg1map
 	.word	hitMap
 	.size	MoveMapRight, .-MoveMapRight
-	.align	2
-	.global	MoveMap
-	.type	MoveMap, %function
-MoveMap:
-	@ Function supports interworking.
-	@ args = 0, pretend = 0, frame = 0
-	@ frame_needed = 1, uses_anonymous_args = 0
-	mov	ip, sp
-	stmfd	sp!, {r4, r5, r6, r7, r8, fp, ip, lr, pc}
-	sub	fp, ip, #4
-	sub	sp, sp, #12
-	mov	r5, #0	@  moveRight
-	mov	r6, r5	@  moveDown,  moveRight
-	mov	r7, r5	@  moveLeft,  moveRight
-	mov	r8, r5	@  moveUp,  moveDown
-	cmp	r0, #3	@  direction
-	ldrls	pc, [pc, r0, asl #2]	@  direction
-	b	.L347
-	.p2align 2
-.L365:
-	.word	.L349
-	.word	.L373
-	.word	.L357
-	.word	.L374
-.L349:
-	ldr	r4, .L380
-	ldr	r0, [r4, #0]	@  screenLeft
-	cmp	r0, #0
-	ble	.L373
-	ldr	r2, .L380+4
-	ldr	ip, .L380+8
-	ldr	r3, [r2, #0]	@  regX
-	ldr	r1, [ip, #0]	@  mapLeft
-	sub	r3, r3, #1
-	cmp	r1, #0
-	str	r3, [r2, #0]	@  regX
-	ble	.L351
-	ldr	r3, .L380+12
-	ldr	r2, [r3, #0]	@  mapRight
-	sub	r1, r1, #1
-	sub	r2, r2, #1
-	str	r1, [ip, #0]	@  mapLeft
-	str	r2, [r3, #0]	@  mapRight
-.L351:
-	sub	ip, r0, #1
-	ldr	lr, .L380+16
-	mov	r2, r0, asr #31
-	mov	r1, ip, asr #31
-	add	r2, r0, r2, lsr #29
-	ldr	r3, .L380+20
-	add	r1, ip, r1, lsr #29
-	ldr	r0, [lr, #0]	@  screenRight
-	mov	r2, r2, asr #3
-	mov	r1, r1, asr #3
-	cmp	r1, r2
-	str	r2, [r3, #0]	@  prevColumn
-	ldr	r3, .L380+24
-	sub	r0, r0, #1
-	movlt	r7, #1	@  moveLeft
-	str	ip, [r4, #0]	@  screenLeft
-	str	r0, [lr, #0]	@  screenRight
-	str	r1, [r3, #0]	@  nextColumn
-.L353:
-	ldr	r4, [lr, #0]	@  screenRight
-	mov	r0, #508
-	add	r0, r0, #2
-	cmp	r4, r0
-	bgt	.L357
-	ldr	r2, .L380+4
-	ldr	ip, .L380+12
-	ldr	r3, [r2, #0]	@  regX
-	ldr	r1, [ip, #0]	@  mapRight
-	add	r3, r3, #1
-	cmp	r1, r0
-	str	r3, [r2, #0]	@  regX
-	bgt	.L355
-	ldr	r3, .L380+8
-	ldr	r2, [r3, #0]	@  mapLeft
-	add	r1, r1, #1
-	add	r2, r2, #1
-	str	r1, [ip, #0]	@  mapRight
-	str	r2, [r3, #0]	@  mapLeft
-.L355:
-	ldr	lr, .L380
-	mov	r0, r4, asr #31
-	ldr	r3, [lr, #0]	@  screenLeft
-	add	ip, r4, #1
-	ldr	r2, .L380+20
-	add	r0, r4, r0, lsr #29
-	mov	r0, r0, asr #3
-	add	r3, r3, #1
-	mov	r1, ip, asr #31
-	add	r1, ip, r1, lsr #29
-	str	r3, [lr, #0]	@  screenLeft
-	str	r0, [r2, #0]	@  prevColumn
-	ldr	r3, .L380+16
-	ldr	r2, .L380+24
-	mov	r1, r1, asr #3
-	cmp	r1, r0
-	str	ip, [r3, #0]	@  screenRight
-	str	r1, [r2, #0]	@  nextColumn
-	movgt	r5, #1	@  moveRight
-.L357:
-	ldr	r4, .L380+28
-	ldr	r0, [r4, #0]	@  screenTop
-	cmp	r0, #0
-	ble	.L374
-	ldr	r2, .L380+32
-	ldr	ip, .L380+36
-	ldr	r3, [r2, #0]	@  regY
-	ldr	r1, [ip, #0]	@  mapTop
-	sub	r3, r3, #1
-	cmp	r1, #0
-	str	r3, [r2, #0]	@  regY
-	ble	.L359
-	ldr	r3, .L380+40
-	ldr	r2, [r3, #0]	@  mapBottom
-	sub	r1, r1, #1
-	sub	r2, r2, #1
-	str	r1, [ip, #0]	@  mapTop
-	str	r2, [r3, #0]	@  mapBottom
-.L359:
-	sub	ip, r0, #1
-	ldr	lr, .L380+44
-	mov	r2, r0, asr #31
-	mov	r1, ip, asr #31
-	add	r2, r0, r2, lsr #29
-	ldr	r3, .L380+48
-	add	r1, ip, r1, lsr #29
-	ldr	r0, [lr, #0]	@  screenBottom
-	mov	r2, r2, asr #3
-	mov	r1, r1, asr #3
-	cmp	r1, r2
-	str	r2, [r3, #0]	@  prevRow
-	ldr	r3, .L380+52
-	sub	r0, r0, #1
-	movlt	r8, #1	@  moveUp
-	str	ip, [r4, #0]	@  screenTop
-	str	r0, [lr, #0]	@  screenBottom
-	str	r1, [r3, #0]	@  nextRow
-.L361:
-	ldr	r4, [lr, #0]	@  screenBottom
-	mov	r0, #508
-	add	r0, r0, #2
-	cmp	r4, r0
-	bgt	.L348
-	ldr	r2, .L380+32
-	ldr	ip, .L380+40
-	ldr	r3, [r2, #0]	@  regY
-	ldr	r1, [ip, #0]	@  mapBottom
-	add	r3, r3, #1
-	cmp	r1, r0
-	str	r3, [r2, #0]	@  regY
-	bgt	.L363
-	ldr	r3, .L380+36
-	ldr	r2, [r3, #0]	@  mapTop
-	add	r1, r1, #1
-	add	r2, r2, #1
-	str	r2, [r3, #0]	@  mapTop
-	str	r1, [ip, #0]	@  mapBottom
-.L363:
-	ldr	lr, .L380+28
-	mov	r0, r4, asr #31
-	ldr	r3, [lr, #0]	@  screenTop
-	add	ip, r4, #1
-	ldr	r2, .L380+48
-	add	r0, r4, r0, lsr #29
-	mov	r0, r0, asr #3
-	add	r3, r3, #1
-	mov	r1, ip, asr #31
-	add	r1, ip, r1, lsr #29
-	str	r3, [lr, #0]	@  screenTop
-	str	r0, [r2, #0]	@  prevRow
-	ldr	r3, .L380+44
-	ldr	r2, .L380+52
-	mov	r1, r1, asr #3
-	cmp	r1, r0
-	str	ip, [r3, #0]	@  screenBottom
-	str	r1, [r2, #0]	@  nextRow
-	movgt	r6, #1	@  moveDown
-.L348:
-	cmp	r7, #0	@  moveLeft
-	bne	.L376
-.L367:
-	cmp	r5, #0	@  moveRight
-	bne	.L377
-.L368:
-	cmp	r8, #0	@  moveUp
-	bne	.L378
-.L369:
-	cmp	r6, #0	@  moveDown
-	bne	.L379
-.L347:
-	ldmea	fp, {r4, r5, r6, r7, r8, fp, sp, lr}
-	bx	lr
-.L379:
-	ldr	r3, .L380+44
-	ldr	r2, .L380+52
-	ldr	r0, [r3, #0]	@  direction,  screenBottom
-	ldr	ip, .L380+12
-	ldr	r3, .L380+8
-	ldr	r1, [r2, #0]	@  nextRow
-	ldr	lr, .L380+56
-	ldr	r2, [r3, #0]	@  mapLeft
-	ldr	r3, [ip, #0]	@  mapRight
-	ldr	ip, .L380+60
-	ldr	r4, [lr, #0]	@  map
-	ldr	lr, [ip, #0]	@  bg0map
-	mov	ip, #64
-	stmia	sp, {r4, lr}	@ phole stm
-	str	ip, [sp, #8]
-	ldr	r4, .L380+64
-	mov	lr, pc
-	bx	r4
-	b	.L347
-.L378:
-	ldr	r3, .L380+28
-	ldr	r2, .L380+52
-	ldr	r0, [r3, #0]	@  direction,  screenTop
-	ldr	ip, .L380+12
-	ldr	r3, .L380+8
-	ldr	r1, [r2, #0]	@  nextRow
-	ldr	lr, .L380+56
-	ldr	r2, [r3, #0]	@  mapLeft
-	ldr	r3, [ip, #0]	@  mapRight
-	ldr	ip, .L380+60
-	ldr	r4, [lr, #0]	@  map
-	ldr	lr, [ip, #0]	@  bg0map
-	mov	ip, #64
-	stmia	sp, {r4, lr}	@ phole stm
-	str	ip, [sp, #8]
-	ldr	r4, .L380+64
-	mov	lr, pc
-	bx	r4
-	b	.L369
-.L377:
-	ldr	r3, .L380+16
-	ldr	r2, .L380+24
-	ldr	r0, [r3, #0]	@  direction,  screenRight
-	ldr	ip, .L380+40
-	ldr	r3, .L380+36
-	ldr	r1, [r2, #0]	@  nextColumn
-	ldr	lr, .L380+56
-	ldr	r2, [r3, #0]	@  mapTop
-	ldr	r3, [ip, #0]	@  mapBottom
-	ldr	ip, .L380+60
-	ldr	r4, [lr, #0]	@  map
-	ldr	lr, [ip, #0]	@  bg0map
-	mov	ip, #64
-	stmia	sp, {r4, lr}	@ phole stm
-	str	ip, [sp, #8]
-	ldr	r4, .L380+68
-	mov	lr, pc
-	bx	r4
-	b	.L368
-.L376:
-	ldr	r3, .L380
-	ldr	r2, .L380+24
-	ldr	r0, [r3, #0]	@  direction,  screenLeft
-	ldr	ip, .L380+40
-	ldr	r3, .L380+36
-	ldr	r1, [r2, #0]	@  nextColumn
-	ldr	lr, .L380+56
-	ldr	r2, [r3, #0]	@  mapTop
-	ldr	r3, [ip, #0]	@  mapBottom
-	ldr	ip, .L380+60
-	ldr	r4, [lr, #0]	@  map
-	ldr	lr, [ip, #0]	@  bg0map
-	mov	ip, #64
-	stmia	sp, {r4, lr}	@ phole stm
-	str	ip, [sp, #8]
-	ldr	r4, .L380+68
-	mov	lr, pc
-	bx	r4
-	b	.L367
-.L374:
-	ldr	lr, .L380+44
-	b	.L361
-.L373:
-	ldr	lr, .L380+16
-	b	.L353
-.L381:
-	.align	2
-.L380:
-	.word	screenLeft
-	.word	regX
-	.word	mapLeft
-	.word	mapRight
-	.word	screenRight
-	.word	prevColumn
-	.word	nextColumn
-	.word	screenTop
-	.word	regY
-	.word	mapTop
-	.word	mapBottom
-	.word	screenBottom
-	.word	prevRow
-	.word	nextRow
-	.word	map
-	.word	bg0map
-	.word	CopyRowToBackground
-	.word	CopyColumnToBackground
-	.size	MoveMap, .-MoveMap
 	.align	2
 	.global	CanMove
 	.type	CanMove, %function
@@ -17264,7 +21642,7 @@ CanMove:
 	stmfd	sp!, {fp, ip, lr, pc}
 	sub	fp, ip, #4
 	bl	GetNextTile
-	subs	r0, r0, #2	@  x,  x
+	subs	r0, r0, #1	@  x,  x
 	movne	r0, #1	@  x
 	ldmea	fp, {fp, sp, lr}
 	bx	lr
@@ -17274,7 +21652,7 @@ CanMove:
 	.type	CanMoveRight, %function
 CanMoveRight:
 	@ Function supports interworking.
-	@ args = 136, pretend = 16, frame = 0
+	@ args = 144, pretend = 16, frame = 0
 	@ frame_needed = 1, uses_anonymous_args = 0
 	mov	ip, sp
 	sub	sp, sp, #16
@@ -17282,9 +21660,9 @@ CanMoveRight:
 	sub	fp, ip, #20
 	add	ip, fp, #4
 	stmia	ip, {r0, r1, r2, r3}
-	ldr	r2, [fp, #132]	@  sprite.boundingBox.xsize
+	ldr	r2, [fp, #140]	@  sprite.boundingBox.xsize
 	ldr	r3, [fp, #48]	@  sprite.mapX
-	ldr	r1, [fp, #124]	@  sprite.boundingBox.x
+	ldr	r1, [fp, #132]	@  sprite.boundingBox.x
 	add	r3, r3, r2
 	add	r3, r3, r1	@  x
 	ldr	r5, [fp, #52]	@  y,  sprite.mapY
@@ -17295,8 +21673,8 @@ CanMoveRight:
 	mov	r3, r0
 	cmp	r3, #0
 	mov	r0, r6
-	beq	.L383
-	ldr	r4, [fp, #136]	@  sprite.boundingBox.ysize
+	beq	.L466
+	ldr	r4, [fp, #144]	@  sprite.boundingBox.ysize
 	add	r4, r4, r4, lsr #31
 	mov	r4, r4, asr #1	@  halfYSize
 	add	r5, r5, r4	@  y,  y,  halfYSize
@@ -17308,12 +21686,12 @@ CanMoveRight:
 	cmp	r3, #0
 	mov	r0, r6
 	mov	r1, r5	@  y
-	beq	.L383
+	beq	.L466
 	bl	CanMove
 	cmp	r0, #0
 	movne	r3, #1
 	moveq	r3, #0
-.L383:
+.L466:
 	mov	r0, r3
 	ldmea	fp, {r4, r5, r6, fp, sp, lr}
 	bx	lr
@@ -17323,7 +21701,7 @@ CanMoveRight:
 	.type	CanMoveLeft, %function
 CanMoveLeft:
 	@ Function supports interworking.
-	@ args = 136, pretend = 16, frame = 0
+	@ args = 144, pretend = 16, frame = 0
 	@ frame_needed = 1, uses_anonymous_args = 0
 	mov	ip, sp
 	sub	sp, sp, #16
@@ -17331,7 +21709,7 @@ CanMoveLeft:
 	sub	fp, ip, #20
 	add	ip, fp, #4
 	stmia	ip, {r0, r1, r2, r3}
-	ldr	r2, [fp, #124]	@  sprite.boundingBox.x
+	ldr	r2, [fp, #132]	@  sprite.boundingBox.x
 	add	r3, fp, #48
 	ldmia	r3, {r3, r5}	@ phole ldm
 	add	r3, r3, r2	@  x
@@ -17342,8 +21720,8 @@ CanMoveLeft:
 	mov	r3, r0
 	cmp	r3, #0
 	mov	r0, r6
-	beq	.L387
-	ldr	r4, [fp, #136]	@  sprite.boundingBox.ysize
+	beq	.L470
+	ldr	r4, [fp, #144]	@  sprite.boundingBox.ysize
 	add	r4, r4, r4, lsr #31
 	mov	r4, r4, asr #1	@  halfYSize
 	add	r5, r5, r4	@  y,  y,  halfYSize
@@ -17355,12 +21733,12 @@ CanMoveLeft:
 	cmp	r3, #0
 	mov	r0, r6
 	mov	r1, r5	@  y
-	beq	.L387
+	beq	.L470
 	bl	CanMove
 	cmp	r0, #0
 	movne	r3, #1
 	moveq	r3, #0
-.L387:
+.L470:
 	mov	r0, r3
 	ldmea	fp, {r4, r5, r6, fp, sp, lr}
 	bx	lr
@@ -17370,7 +21748,7 @@ CanMoveLeft:
 	.type	CanMoveUp, %function
 CanMoveUp:
 	@ Function supports interworking.
-	@ args = 136, pretend = 16, frame = 0
+	@ args = 144, pretend = 16, frame = 0
 	@ frame_needed = 1, uses_anonymous_args = 0
 	mov	ip, sp
 	sub	sp, sp, #16
@@ -17378,7 +21756,7 @@ CanMoveUp:
 	sub	fp, ip, #20
 	add	ip, fp, #4
 	stmia	ip, {r0, r1, r2, r3}
-	ldr	r3, [fp, #124]	@  sprite.boundingBox.x
+	ldr	r3, [fp, #132]	@  sprite.boundingBox.x
 	add	r2, fp, #48
 	ldmia	r2, {r2, r5}	@ phole ldm
 	add	r4, r2, r3	@  x
@@ -17388,8 +21766,8 @@ CanMoveUp:
 	cmp	r0, #0	@  x
 	mov	r1, r5	@  y
 	mov	r3, r0	@  x,  x
-	beq	.L391
-	ldr	r3, [fp, #132]	@  sprite.boundingBox.xsize
+	beq	.L474
+	ldr	r3, [fp, #140]	@  sprite.boundingBox.xsize
 	add	r3, r3, r3, lsr #31
 	mov	r3, r3, asr #1	@  halfXSize
 	add	r4, r4, r3	@  x,  x,  halfXSize
@@ -17400,12 +21778,12 @@ CanMoveUp:
 	cmp	r3, #0	@  x
 	mov	r0, r4	@  x
 	mov	r1, r5	@  y
-	beq	.L391
+	beq	.L474
 	bl	CanMove
 	cmp	r0, #0	@  x
 	movne	r3, #1	@  x
 	moveq	r3, #0	@  x
-.L391:
+.L474:
 	mov	r0, r3	@  x
 	ldmea	fp, {r4, r5, fp, sp, lr}
 	bx	lr
@@ -17415,7 +21793,7 @@ CanMoveUp:
 	.type	CanMoveDown, %function
 CanMoveDown:
 	@ Function supports interworking.
-	@ args = 136, pretend = 16, frame = 0
+	@ args = 144, pretend = 16, frame = 0
 	@ frame_needed = 1, uses_anonymous_args = 0
 	mov	ip, sp
 	sub	sp, sp, #16
@@ -17424,10 +21802,10 @@ CanMoveDown:
 	add	ip, fp, #4
 	stmia	ip, {r0, r1, r2, r3}
 	ldr	r2, [fp, #52]	@  sprite.mapY
-	ldr	r3, [fp, #136]	@  sprite.boundingBox.ysize
+	ldr	r3, [fp, #144]	@  sprite.boundingBox.ysize
 	ldr	r1, [fp, #48]	@  sprite.mapX
 	add	r5, r2, r3	@  y
-	ldr	r3, [fp, #124]	@  sprite.boundingBox.x
+	ldr	r3, [fp, #132]	@  sprite.boundingBox.x
 	add	r4, r1, r3	@  x
 	mov	r0, r4	@  x
 	mov	r1, r5	@  y
@@ -17435,8 +21813,8 @@ CanMoveDown:
 	cmp	r0, #0	@  x
 	mov	r1, r5	@  y
 	mov	r3, r0	@  x,  x
-	beq	.L395
-	ldr	r3, [fp, #132]	@  sprite.boundingBox.xsize
+	beq	.L478
+	ldr	r3, [fp, #140]	@  sprite.boundingBox.xsize
 	add	r3, r3, r3, lsr #31
 	mov	r3, r3, asr #1	@  halfXSize
 	add	r4, r4, r3	@  x,  x,  halfXSize
@@ -17447,12 +21825,12 @@ CanMoveDown:
 	cmp	r3, #0	@  x
 	mov	r0, r4	@  x
 	mov	r1, r5	@  y
-	beq	.L395
+	beq	.L478
 	bl	CanMove
 	cmp	r0, #0	@  x
 	movne	r3, #1	@  x
 	moveq	r3, #0	@  x
-.L395:
+.L478:
 	mov	r0, r3	@  x
 	ldmea	fp, {r4, r5, fp, sp, lr}
 	bx	lr
@@ -17466,7 +21844,7 @@ RemoveSprite:
 	@ frame_needed = 0, uses_anonymous_args = 0
 	@ link register save eliminated.
 	mov	r3, #1
-	str	r3, [r0, #84]	@  <variable>.isRemoved
+	str	r3, [r0, #92]	@  <variable>.isRemoved
 	mov	r2, #240
 	mov	r3, #160
 	@ lr needed for prologue
@@ -17478,92 +21856,457 @@ RemoveSprite:
 	.type	SpawnEnemy, %function
 SpawnEnemy:
 	@ Function supports interworking.
-	@ args = 0, pretend = 0, frame = 8
+	@ args = 0, pretend = 0, frame = 0
 	@ frame_needed = 1, uses_anonymous_args = 0
 	mov	ip, sp
-	stmfd	sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr, pc}
-	ldr	r8, .L401	@  mapX
+	stmfd	sp!, {r4, r5, r6, r7, r8, sl, fp, ip, lr, pc}
+	ldr	r4, .L486	@  mapX
+	mov	r8, r0	@  mapX
 	sub	fp, ip, #4
-	sub	sp, sp, #8
-	str	r0, [fp, #-44]	@  mapX
-	str	r1, [fp, #-48]	@  mapY
-	mov	r0, r8	@  mapX
+	mov	sl, r1	@  mapY
+	mov	r2, #0
 	mov	r1, #128
+	mov	r0, r4	@  mapX
 	bl	GetNextFreePosition
-	ldr	r9, .L401+4
-	ldr	ip, .L401+8
-	add	lr, r0, r0, asl #4	@  location,  location
-	ldr	r5, [r9, #0]	@  numberOfSprites
-	mov	sl, r0	@  location
-	mov	lr, lr, asl #3
-	ldmia	ip, {r0, r1, r2, r3}
-	mov	ip, #60
-	str	ip, [lr, r8]	@  <variable>.x
-	ldr	ip, [fp, #-44]	@  mapX
-	add	r4, lr, r8	@  mapX
-	add	r5, r5, #1
-	str	r5, [r9, #0]	@  numberOfSprites
-	str	ip, [r4, #44]	@  <variable>.mapX
-	ldr	ip, [fp, #-48]	@  mapY
-	mov	r7, #0
-	str	ip, [r4, #48]	@  <variable>.mapY
-	add	r6, r4, #120
-	mov	ip, #32768
-	mov	lr, #32
-	str	ip, [r4, #8]	@  <variable>.size
-	str	lr, [r4, #68]	@  <variable>.location
-	str	r7, [r4, #4]	@  <variable>.y
-	str	r7, [r4, #12]	@  <variable>.shape
-	stmia	r6, {r0, r1, r2, r3}
+	ldr	r3, .L486+4
+	mov	ip, r0, asl #3	@  location
+	ldr	r1, [r3, #0]	@  shipScreenRight
+	add	r2, ip, r0	@  location
+	mov	r3, #96
+	cmp	r8, r1	@  mapX
+	add	r1, r4, r2, asl #4	@  mapX
+	str	r3, [r1, #4]	@  <variable>.y
+	ldrle	r3, .L486+8
+	ldrle	r2, [r3, #0]	@  shipScreenLeft
+	movgt	r3, #240
+	rsble	r3, r2, r8	@  mapX
+	mov	r7, r0	@  location
+	str	r3, [r1, #0]	@  <variable>.x
+	ldr	lr, .L486+12
+	add	ip, ip, r7	@  location
+	ldmia	lr, {r0, r1, r2, r3}
+	add	ip, r4, ip, asl #4	@  mapX
+	mov	r6, #32768
+	add	r4, ip, #128
+	mov	lr, #160
+	mov	r5, #0
+	str	r8, [ip, #44]	@  mapX,  <variable>.mapX
+	str	sl, [ip, #48]	@  mapY,  <variable>.mapY
+	str	r6, [ip, #12]	@  <variable>.shape
+	str	lr, [ip, #68]	@  <variable>.location
+	str	r6, [ip, #8]	@  <variable>.size
+	stmia	r4, {r0, r1, r2, r3}
 	mov	r3, #1
-	mov	r0, sl	@  location
-	str	r3, [r4, #116]	@  <variable>.dir
-	str	r7, [r4, #84]	@  <variable>.isRemoved
-	str	r7, [r4, #72]	@  <variable>.noGravity
-	str	r7, [r4, #76]	@  <variable>.isProjectile
-	str	r3, [r4, #80]	@  <variable>.speed
-	ldmea	fp, {r4, r5, r6, r7, r8, r9, sl, fp, sp, lr}
+	mov	r0, r7	@  location
+	str	r5, [ip, #124]	@  <variable>.dir
+	str	r3, [ip, #88]	@  <variable>.speed
+	str	r5, [ip, #72]	@  <variable>.noGravity
+	str	r5, [ip, #76]	@  <variable>.isProjectile
+	str	r5, [ip, #92]	@  <variable>.isRemoved
+	ldmea	fp, {r4, r5, r6, r7, r8, sl, fp, sp, lr}
 	bx	lr
-.L402:
+.L487:
 	.align	2
-.L401:
+.L486:
 	.word	sprites
-	.word	numberOfSprites
-	.word	characterStandingRightBBox
+	.word	shipScreenRight
+	.word	shipScreenLeft
+	.word	characterWalkingLeftBBox
 	.size	SpawnEnemy, .-SpawnEnemy
 	.align	2
 	.global	HitTest
 	.type	HitTest, %function
 HitTest:
 	@ Function supports interworking.
-	@ args = 272, pretend = 16, frame = 0
+	@ args = 288, pretend = 16, frame = 0
 	@ frame_needed = 0, uses_anonymous_args = 0
 	@ link register save eliminated.
 	sub	sp, sp, #16
 	stmia	sp, {r0, r1, r2, r3}
-	ldr	r1, [sp, #136]	@  sprite2.x
-	cmp	r0, r1
+	ldr	r3, [sp, #136]	@  sprite1.boundingBox.xsize
+	ldr	r1, [sp, #144]	@  sprite2.x
+	add	r2, r0, r3
+	cmp	r2, r1
 	@ lr needed for prologue
-	ble	.L404
-	ldr	r3, [sp, #264]	@  sprite2.boundingBox.xsize
+	blt	.L489
+	ldr	r3, [sp, #280]	@  sprite2.boundingBox.xsize
 	add	r3, r1, r3
-	cmp	r0, r3
-	bge	.L404
+	cmp	r2, r3
+	bgt	.L489
 	ldr	r1, [sp, #4]	@  sprite1.y
-	ldr	r2, [sp, #140]	@  sprite2.y
+	ldr	r2, [sp, #148]	@  sprite2.y
 	cmp	r1, r2
-	ble	.L404
-	ldr	r3, [sp, #268]	@  sprite2.boundingBox.ysize
+	blt	.L489
+	ldr	r3, [sp, #284]	@  sprite2.boundingBox.ysize
 	add	r3, r2, r3
 	cmp	r1, r3
 	mov	r0, #1
-	blt	.L403
-.L404:
+	ble	.L488
+.L489:
 	mov	r0, #0
-.L403:
+.L488:
 	add	sp, sp, #16
 	bx	lr
 	.size	HitTest, .-HitTest
+	.align	2
+	.global	CounterPlayerMovement
+	.type	CounterPlayerMovement, %function
+CounterPlayerMovement:
+	@ Function supports interworking.
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 0, uses_anonymous_args = 0
+	stmfd	sp!, {r4, r5, lr}
+	mov	lr, #0	@  i
+	ldr	r4, .L501
+	mov	r5, r0	@  amount
+	mov	r0, lr	@  i,  i
+.L498:
+	add	ip, r0, r4	@  i
+	ldr	r3, [ip, #92]	@  <variable>.isRemoved
+	cmp	r3, #0
+	bne	.L494
+	ldr	r3, .L501+4
+	ldr	r2, [r3, #0]	@  characterSpriteIndex
+	cmp	lr, r2	@  i
+	beq	.L494
+	ldr	r3, [ip, #80]	@  <variable>.isHUD
+	cmp	r3, #0
+	bne	.L494
+	ldr	r3, .L501+8
+	ldr	r1, [ip, #136]	@  <variable>.boundingBox.xsize
+	ldr	r2, [r3, #0]	@  shipScreenLeft
+	ldr	ip, [ip, #44]	@  <variable>.mapX
+	rsb	r2, r1, r2
+	cmp	ip, r2
+	ble	.L494
+	ldr	r3, .L501+12
+	ldr	r2, [r3, #0]	@  shipScreenRight
+	cmp	ip, r2
+	ldrlt	r3, [r0, r4]	@  <variable>.x
+	addlt	r3, r3, r5	@  amount
+	strlt	r3, [r0, r4]	@  <variable>.x
+.L494:
+	add	lr, lr, #1	@  i,  i
+	cmp	lr, #127	@  i
+	add	r0, r0, #144	@  i,  i
+	ble	.L498
+	ldmfd	sp!, {r4, r5, lr}
+	bx	lr
+.L502:
+	.align	2
+.L501:
+	.word	sprites
+	.word	characterSpriteIndex
+	.word	shipScreenLeft
+	.word	shipScreenRight
+	.size	CounterPlayerMovement, .-CounterPlayerMovement
+	.align	2
+	.global	ChangePlayerHealth
+	.type	ChangePlayerHealth, %function
+ChangePlayerHealth:
+	@ Function supports interworking.
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 0, uses_anonymous_args = 0
+	stmfd	sp!, {r4, r5, r6, r7, r8, sl, lr}
+	cmp	r0, #10	@  health
+	ldrls	pc, [pc, r0, asl #2]	@  health
+	b	.L504
+	.p2align 2
+.L516:
+	.word	.L515
+	.word	.L514
+	.word	.L513
+	.word	.L512
+	.word	.L511
+	.word	.L510
+	.word	.L509
+	.word	.L508
+	.word	.L507
+	.word	.L506
+	.word	.L505
+.L505:
+	mov	sl, #198	@  leftNum
+	mov	r8, #196	@  rightNum
+.L504:
+	ldr	r3, .L518
+	ldr	r2, .L518+4
+	ldr	r1, [r3, #0]	@  leftHealthIndex
+	ldr	r0, [r2, #0]	@  rightHealthIndex
+	ldr	r5, .L518+8
+	add	r1, r1, r1, asl #3
+	add	r0, r0, r0, asl #3
+	mov	r1, r1, asl #4
+	mov	r0, r0, asl #4
+	add	ip, r1, r5
+	mov	r4, #0
+	add	lr, r0, r5
+	mov	r6, #1
+	mov	r7, #148
+	mov	r3, #4
+	mov	r2, #12
+	str	r3, [r1, r5]	@  <variable>.x
+	str	sl, [ip, #68]	@  leftNum,  <variable>.location
+	str	r6, [ip, #80]	@  <variable>.isHUD
+	str	r7, [ip, #4]	@  <variable>.y
+	str	r4, [ip, #8]	@  <variable>.size
+	str	r4, [ip, #12]	@  <variable>.shape
+	str	r6, [ip, #72]	@  <variable>.noGravity
+	str	r4, [ip, #76]	@  <variable>.isProjectile
+	str	r4, [ip, #92]	@  <variable>.isRemoved
+	str	r2, [r0, r5]	@  <variable>.x
+	str	r6, [lr, #80]	@  <variable>.isHUD
+	str	r8, [lr, #68]	@  rightNum,  <variable>.location
+	str	r7, [lr, #4]	@  <variable>.y
+	str	r4, [lr, #92]	@  <variable>.isRemoved
+	str	r4, [lr, #8]	@  <variable>.size
+	str	r4, [lr, #12]	@  <variable>.shape
+	str	r6, [lr, #72]	@  <variable>.noGravity
+	str	r4, [lr, #76]	@  <variable>.isProjectile
+	ldmfd	sp!, {r4, r5, r6, r7, r8, sl, lr}
+	bx	lr
+.L515:
+	mov	r8, #196	@  rightNum
+	mov	sl, r8	@  leftNum,  rightNum
+	b	.L504
+.L514:
+	mov	sl, #196	@  leftNum
+	mov	r8, #198	@  rightNum
+	b	.L504
+.L513:
+	mov	sl, #196	@  leftNum
+	mov	r8, #200	@  rightNum
+	b	.L504
+.L512:
+	mov	sl, #196	@  leftNum
+	mov	r8, #202	@  rightNum
+	b	.L504
+.L511:
+	mov	sl, #196	@  leftNum
+	mov	r8, #204	@  rightNum
+	b	.L504
+.L510:
+	mov	sl, #196	@  leftNum
+	mov	r8, #206	@  rightNum
+	b	.L504
+.L509:
+	mov	sl, #196	@  leftNum
+	mov	r8, #208	@  rightNum
+	b	.L504
+.L508:
+	mov	sl, #196	@  leftNum
+	mov	r8, #210	@  rightNum
+	b	.L504
+.L507:
+	mov	sl, #196	@  leftNum
+	mov	r8, #212	@  rightNum
+	b	.L504
+.L506:
+	mov	sl, #196	@  leftNum
+	mov	r8, #214	@  rightNum
+	b	.L504
+.L519:
+	.align	2
+.L518:
+	.word	leftHealthIndex
+	.word	rightHealthIndex
+	.word	sprites
+	.size	ChangePlayerHealth, .-ChangePlayerHealth
+	.align	2
+	.global	InitializeContinueGame
+	.type	InitializeContinueGame, %function
+InitializeContinueGame:
+	@ Function supports interworking.
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 1, uses_anonymous_args = 0
+	mov	ip, sp
+	stmfd	sp!, {r4, r5, r6, r7, fp, ip, lr, pc}
+	ldr	r3, .L521
+	ldr	r6, .L521+4	@  location
+	sub	fp, ip, #4
+	mov	ip, #1
+	str	ip, [r3, #0]	@  gameOver
+	mov	r1, #128
+	mov	r2, #0
+	mov	r0, r6	@  location
+	bl	GetNextFreePosition
+	add	r5, r0, #1	@  location
+	add	r0, r0, r0, asl #3	@  location,  location
+	mov	r0, r0, asl #4
+	add	ip, r5, r5, asl #3
+	add	lr, r0, r6	@  location
+	mov	ip, ip, asl #4
+	mov	r3, #112
+	mov	r2, #226
+	add	r1, ip, r6	@  location
+	str	r3, [r0, r6]	@  <variable>.x
+	str	r2, [lr, #68]	@  <variable>.location
+	mov	r3, #116
+	mov	r2, #196
+	str	r3, [ip, r6]	@  <variable>.x
+	str	r2, [r1, #212]	@  <variable>.location
+	mov	r3, #60
+	mov	r2, #32768
+	str	r3, [lr, #4]	@  <variable>.y
+	str	r2, [lr, #8]	@  <variable>.size
+	mov	r3, #16384
+	ldr	r2, .L521+8
+	str	r3, [lr, #12]	@  <variable>.shape
+	mov	r3, #198
+	str	r5, [r2, #0]	@  timeLeftIndex
+	mov	r4, #0
+	mov	r7, #78
+	str	r3, [r1, #68]	@  <variable>.location
+	mov	r3, #122
+	str	r7, [r1, #148]	@  <variable>.y
+	str	r3, [r1, #144]	@  <variable>.x
+	str	r4, [r1, #156]	@  <variable>.shape
+	str	r7, [r1, #4]	@  <variable>.y
+	str	r4, [r1, #8]	@  <variable>.size
+	str	r4, [r1, #12]	@  <variable>.shape
+	str	r4, [r1, #152]	@  <variable>.size
+	bl	WaitVBlank
+	mov	r0, r6	@  location
+	mov	r1, #128
+	ldmea	fp, {r4, r5, r6, r7, fp, sp, lr}
+	b	UpdateSpriteMemory
+.L522:
+	.align	2
+.L521:
+	.word	gameOver
+	.word	sprites
+	.word	timeLeftIndex
+	.size	InitializeContinueGame, .-InitializeContinueGame
+	.align	2
+	.global	GameOverUpdate
+	.type	GameOverUpdate, %function
+GameOverUpdate:
+	@ Function supports interworking.
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 1, uses_anonymous_args = 0
+	mov	ip, sp
+	stmfd	sp!, {r4, r5, r6, r7, fp, ip, lr, pc}
+	sub	fp, ip, #4
+	bl	keyPoll
+	mov	r0, #1
+	bl	keyHit
+	cmp	r0, #0
+	bne	.L547
+	ldr	r5, .L548
+	ldr	r3, [r5, #0]	@  timeLeft
+	cmp	r3, #0
+	blt	.L523
+	cmp	r3, #10
+	ldrls	pc, [pc, r3, asl #2]
+	b	.L527
+	.p2align 2
+.L539:
+	.word	.L538
+	.word	.L537
+	.word	.L536
+	.word	.L535
+	.word	.L534
+	.word	.L533
+	.word	.L532
+	.word	.L531
+	.word	.L530
+	.word	.L529
+	.word	.L528
+.L528:
+	mov	r7, #198	@  leftNum
+	mov	r6, #196	@  rightNum
+.L527:
+	ldr	r2, .L548+4
+	ldr	r3, [r2, #0]	@  timeLeftIndex
+	ldr	r0, [r5, #0]	@  timeLeft
+	ldr	r4, .L548+8
+	add	r3, r3, r3, asl #3
+	mov	r3, r3, asl #4
+	mov	r1, #116
+	add	r2, r3, r4
+	mov	ip, #0	@  n
+	mov	lr, #78
+	str	r1, [r3, r4]	@  <variable>.x
+	sub	r0, r0, #1
+	mov	r3, #122
+	str	r0, [r5, #0]	@  timeLeft
+	str	r3, [r2, #144]	@  <variable>.x
+	str	r6, [r2, #212]	@  rightNum,  <variable>.location
+	str	r7, [r2, #68]	@  leftNum,  <variable>.location
+	str	lr, [r2, #148]	@  <variable>.y
+	str	ip, [r2, #156]	@  n,  <variable>.shape
+	str	lr, [r2, #4]	@  <variable>.y
+	str	ip, [r2, #8]	@  n,  <variable>.size
+	str	ip, [r2, #12]	@  n,  <variable>.shape
+	str	ip, [r2, #152]	@  n,  <variable>.size
+	bl	WaitVBlank
+	mov	r0, r4
+	mov	r1, #128
+	bl	UpdateSpriteMemory
+	mov	r3, #1998848	@  n
+	add	r3, r3, #1152	@  n,  n
+.L545:
+	subs	r3, r3, #1	@  n,  n
+	bne	.L545
+.L523:
+	ldmea	fp, {r4, r5, r6, r7, fp, sp, lr}
+	bx	lr
+.L538:
+	mov	r6, #196	@  rightNum
+	mov	r7, r6	@  leftNum,  rightNum
+	b	.L527
+.L537:
+	mov	r7, #196	@  leftNum
+	mov	r6, #198	@  rightNum
+	b	.L527
+.L536:
+	mov	r7, #196	@  leftNum
+	mov	r6, #200	@  rightNum
+	b	.L527
+.L535:
+	mov	r7, #196	@  leftNum
+	mov	r6, #202	@  rightNum
+	b	.L527
+.L534:
+	mov	r7, #196	@  leftNum
+	mov	r6, #204	@  rightNum
+	b	.L527
+.L533:
+	mov	r7, #196	@  leftNum
+	mov	r6, #206	@  rightNum
+	b	.L527
+.L532:
+	mov	r7, #196	@  leftNum
+	mov	r6, #208	@  rightNum
+	b	.L527
+.L531:
+	mov	r7, #196	@  leftNum
+	mov	r6, #210	@  rightNum
+	b	.L527
+.L530:
+	mov	r7, #196	@  leftNum
+	mov	r6, #212	@  rightNum
+	b	.L527
+.L529:
+	mov	r7, #196	@  leftNum
+	mov	r6, #214	@  rightNum
+	b	.L527
+.L547:
+	ldr	r3, .L548+12
+	mov	r2, #0
+	str	r2, [r3, #0]	@  gameOver
+	bl	ShipInitialize
+	ldr	r3, .L548
+	mov	r2, #10
+	str	r2, [r3, #0]	@  timeLeft
+	b	.L523
+.L549:
+	.align	2
+.L548:
+	.word	timeLeft
+	.word	timeLeftIndex
+	.word	sprites
+	.word	gameOver
+	.size	GameOverUpdate, .-GameOverUpdate
 	.align	2
 	.global	CopyColumnToBackground
 	.type	CopyColumnToBackground, %function
@@ -17590,12 +22333,12 @@ CopyColumnToBackground:
 	mov	r0, r3, asr #3	@  column
 	ldr	r5, [sp, #16]	@  dest,  dest
 	ldr	r1, [sp, #20]	@  sourceColumns,  sourceColumns
-	bge	.L413
+	bge	.L557
 	mla	r2, r1, ip, r0	@  sourceColumns,  row,  column
 	ldr	r3, [sp, #12]	@  source,  source
 	mov	r1, r1, asl #1	@  sourceColumns
 	add	r0, r3, r2, asl #1	@  source
-.L411:
+.L555:
 	mov	r3, ip, asr #31	@  row
 	add	r3, ip, r3, lsr #27	@  row
 	bic	r3, r3, #31
@@ -17607,8 +22350,8 @@ CopyColumnToBackground:
 	cmp	ip, lr	@  row,  bottomRow
 	strh	r2, [r3, r5]	@ movhi 	@ * dest
 	add	r0, r0, r1
-	blt	.L411
-.L413:
+	blt	.L555
+.L557:
 	ldmfd	sp!, {r4, r5, lr}
 	bx	lr
 	.size	CopyColumnToBackground, .-CopyColumnToBackground
@@ -17638,12 +22381,12 @@ CopyRowToBackground:
 	rsb	r4, r1, r4	@  copyToRow,  copyToRow
 	ldr	r6, [sp, #16]	@  source,  source
 	ldr	r5, [sp, #20]	@  dest,  dest
-	bge	.L421
+	bge	.L565
 	ldr	r3, [sp, #24]	@  sourceColumns,  sourceColumns
 	mla	r2, r3, r0, ip	@  sourceColumns,  row,  column
 	mov	r1, r4, asl #5	@  copyToRow
 	mov	r0, r2, asl #1
-.L419:
+.L563:
 	mov	r3, ip, asr #31	@  column
 	add	r3, ip, r3, lsr #27	@  column
 	bic	r3, r3, #31
@@ -17655,8 +22398,8 @@ CopyRowToBackground:
 	cmp	ip, lr	@  column,  rightColumn
 	strh	r2, [r3, r5]	@ movhi 	@ * dest
 	add	r0, r0, #2
-	blt	.L419
-.L421:
+	blt	.L563
+.L565:
 	ldmfd	sp!, {r4, r5, r6, lr}
 	bx	lr
 	.size	CopyRowToBackground, .-CopyRowToBackground
@@ -17670,15 +22413,15 @@ Sin_val:
 	@ link register save eliminated.
 	mov	r0, r0, lsr #6	@  angle
 	bic	r0, r0, #1
-	ldr	r3, .L423
+	ldr	r3, .L567
 	mov	r0, r0, asl #22
 	mov	r0, r0, lsr #22
 	ldrsh	r0, [r0, r3]	@  angle,  sin_lut
 	@ lr needed for prologue
 	bx	lr
-.L424:
+.L568:
 	.align	2
-.L423:
+.L567:
 	.word	sin_lut
 	.size	Sin_val, .-Sin_val
 	.align	2
@@ -17692,15 +22435,15 @@ Cos_val:
 	mov	r0, r0, lsr #7	@  angle
 	add	r0, r0, #128
 	mov	r0, r0, asl #23
-	ldr	r3, .L426
+	ldr	r3, .L570
 	mov	r0, r0, lsr #23
 	mov	r0, r0, asl #1
 	ldrsh	r0, [r0, r3]	@  angle,  sin_lut
 	@ lr needed for prologue
 	bx	lr
-.L427:
+.L571:
 	.align	2
-.L426:
+.L570:
 	.word	sin_lut
 	.size	Cos_val, .-Cos_val
 	.comm	buttons, 40, 32
@@ -17708,13 +22451,16 @@ Cos_val:
 	.comm	prev_state, 2, 16
 	.comm	bg0map, 4, 32
 	.comm	bg1map, 4, 32
-	.comm	sprites, 17408, 32
-	.comm	numberOfSprites, 4, 32
+	.comm	sprites, 18432, 32
 	.comm	jumpDuration, 4, 32
 	.comm	characterSpriteIndex, 4, 32
 	.comm	enemySpriteIndex, 4, 32
+	.comm	leftHealthIndex, 4, 32
+	.comm	rightHealthIndex, 4, 32
+	.comm	timeLeftIndex, 4, 32
 	.comm	characterWalkingRightBBox, 16, 32
 	.comm	characterStandingRightBBox, 16, 32
 	.comm	characterWalkingLeftBBox, 16, 32
 	.comm	characterStandingLeftBBox, 16, 32
+	.comm	characterGunBBox, 16, 32
 	.ident	"GCC: (GNU) 3.3.2"

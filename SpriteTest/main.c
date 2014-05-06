@@ -2,24 +2,40 @@
 #include "LUT_sin_cos.h"
 #include "sprites.h"
 #include "buttons.h"
-#include "simpleOutside.pal.h"
-#include "simpleOutside.map.h"
-#include "simpleOutside.raw.h"
-#include "simpleOutsideHitMap.map.h"
-#include "simpleOutsideHitMap.raw.h"
 #include "philFacingRight3.h"
 #include "phil.h"
 #include "philFacingRight.h"
 #include "philFacingRight2.h"
 #include "philJumping.h"
 #include "laser.h"
+#include "bg.pal.h"
+#include "shipBGscrn.raw.h"
+#include "shipBGscrn.map.h"
+#include "shipHitMapscrn.raw.h"
+#include "shipHitMapscrn.map.h"
+#include "hudLife.h"
+#include "hudPercent.h"
+#include "hud0.h"
+#include "hud1.h"
+#include "hud2.h"
+#include "hud3.h"
+#include "hud4.h"
+#include "hud5.h"
+#include "hud6.h"
+#include "hud7.h"
+#include "hud8.h"
+#include "hud9.h"
+#include "laserPurple.h"
+#include "enemy.h"
+#include "continue.h"
+#include <Math.h>
 
 void Gravity();
 void Jump();
 SpriteHandler Move(Direction, SpriteHandler);
 void RemoveSprite(SpriteHandler*);
 int GetNextTile(int, int);
-void Shoot(int, int, int, int, Direction);
+void Shoot(int, int, int, int, Direction, int, int);
 void MoveMapRight();
 void MoveMapLeft();
 void CopyRowToBackground(int, int, int, int, const unsigned short*, unsigned short*, int);
@@ -31,16 +47,20 @@ int CanMoveUp(SpriteHandler);
 int CanMoveDown(SpriteHandler);
 int SpawnEnemy(int, int);
 int HitTest(SpriteHandler, SpriteHandler);
+void CounterPlayerMovement(int);
+void ChangePlayerHealth(int);
+void InitializeContinueGame();
+void GameOverUpdate();
 
-#define MAP_WIDTH 512
-#define MAP_HEIGHT 512
-#define MAP_COLUMNS 64
-#define MAP_ROWS 64
-const unsigned char* mapTiles = simpleOutside_Tiles;
-const u16* map = simpleOutside_Map;
-const u16* mapPalette = simpleOutside_Palette;
-const u16* hitMap = simpleOutsideHitMap_Map;
-const unsigned char* hitMapTiles = simpleOutsideHitMap_Tiles;
+#define SHIP_MAP_WIDTH 800
+#define SHIP_MAP_HEIGHT 160
+#define SHIP_MAP_COLUMNS 100
+#define SHIP_MAP_ROWS 20
+const unsigned char* mapTiles = shipBGscrn_Tiles;
+const u16* map = shipBGscrn_Map;
+const u16* mapPalette = bg_Palette;
+const u16* hitMap = shipHitMapscrn_Map;
+const unsigned char* hitMapTiles = shipHitMapscrn_Tiles;
 
 u16* bg0map, *bg1map;
 #define FORWARD_SPRITE_LOC 0
@@ -48,9 +68,23 @@ u16* bg0map, *bg1map;
 #define WALKING1_SPRITE_LOC 32 * 32 / (8 * 8) * 2 * 2
 #define WALKING2_SPRITE_LOC 32 * 32 / (8 * 8) * 2 * 3
 #define JUMPING_SPRITE_LOC 32 * 32 / (8 * 8) * 2 * 4
-#define LASER_SPRITE_LOC 32 * 32 / (8 * 8) * 2 * 5
+#define ENEMY_SPRITE_LOC 32 * 32 / (8 * 8) * 2 * 5
+#define CHAR_LASER_SPRITE_LOC (32 * 32 / (8 * 8) * 2 * 6)
+#define ENEMY_LASER_SPRITE_LOC (32 * 32 / (8 * 8) * 2 * 6) + 2
+#define HUD_0_SPRITE (32 * 32 / (8 * 8) * 2 * 6) + (2 * 2)
+#define HUD_1_SPRITE (32 * 32 / (8 * 8) * 2 * 6) + (3 * 2)
+#define HUD_2_SPRITE (32 * 32 / (8 * 8) * 2 * 6) + (4 * 2)
+#define HUD_3_SPRITE (32 * 32 / (8 * 8) * 2 * 6) + (5 * 2)
+#define HUD_4_SPRITE (32 * 32 / (8 * 8) * 2 * 6) + (6 * 2)
+#define HUD_5_SPRITE (32 * 32 / (8 * 8) * 2 * 6) + (7 * 2)
+#define HUD_6_SPRITE (32 * 32 / (8 * 8) * 2 * 6) + (8 * 2)
+#define HUD_7_SPRITE (32 * 32 / (8 * 8) * 2 * 6) + (9 * 2)
+#define HUD_8_SPRITE (32 * 32 / (8 * 8) * 2 * 6) + (10 * 2)
+#define HUD_9_SPRITE (32 * 32 / (8 * 8) * 2 * 6) + (11 * 2)
+#define HUD_PERCENT_SPRITE (32 * 32 / (8 * 8) * 2 * 6) + (12 * 2)
+#define HUD_LIFE_SPRITE (32 * 32 / (8 * 8) * 2 * 6) + (13 * 2)
+#define CONTINUE_SPRITE (32 * 32 / (8 * 8) * 2 * 6) + (13 * 2) + (16 * 16 / (8 * 8) * 2)
 SpriteHandler sprites[128];
-int numberOfSprites;
 
 #define JUMP_HEIGHT 20
 bool isJumping = false;
@@ -59,19 +93,30 @@ int jumpDuration;
 int walkingCounter = 0;
 int characterSpriteIndex;
 int enemySpriteIndex;
+int leftHealthIndex;
+int rightHealthIndex;
 
-int mapLeft = 0, mapRight = 255, screenLeft = 0, screenRight = 239, nextColumn = 0, prevColumn = 0;
-int mapTop = 0, mapBottom = 255, screenTop = 0, screenBottom = 159, nextRow = 0, prevRow = 0;
+int shipMapLeft = 0, shipMapRight = 255, shipScreenLeft = 0, shipScreenRight = 239, shipNextColumn = 0, shipPrevColumn = 0;
+int shipMapTop = 0, shipMapBottom = 255, shipScreenTop = 0, shipScreenBottom = 159, shipNextRow = 0, shipPrevRow = 0;
 
 int regX = 0, regY = 0;
+int tookStep = 0;
+int gameOver = 0, timeLeft = 10, timeLeftIndex;
 
 BoundingBox characterWalkingRightBBox;
 BoundingBox characterStandingRightBBox;
 BoundingBox characterWalkingLeftBBox;
 BoundingBox characterStandingLeftBBox;
+BoundingBox characterGunBBox;
 
-void Initialize()
+void ShipInitialize()
 {
+	shipMapLeft = 0; shipMapRight = 255; shipScreenLeft = 0; shipScreenRight = 239; shipNextColumn = 0; shipPrevColumn = 0;
+	shipMapTop = 0; shipMapBottom = 255; shipScreenTop = 0; shipScreenBottom = 159; shipNextRow = 0; shipPrevRow = 0;
+
+	regX = 0; regY = 0;
+	tookStep = 0;
+
 	SetMode(0 |OBJ_ENABLE|OBJ_MAP_1D | BG0_ENABLE);
 	
 	int n, startLocation = 0;
@@ -98,14 +143,72 @@ void Initialize()
 		SpriteData[n] = philJumpingData[n - startLocation];
 
 	startLocation = n;
+	for (; n < 32 * 32 / 2 + startLocation; n++)
+		SpriteData[n] = enemyData[n - startLocation];
+		
+	startLocation = n;
+	for(; n < 8 * 8 / 2 + startLocation; n++)
+		SpriteData[n] = laserPurpleData[n - startLocation];
+		
+	startLocation = n;
 	for(; n < 8 * 8 / 2 + startLocation; n++)
 		SpriteData[n] = laserData[n - startLocation];
 		
+	startLocation = n;
+	for(; n < 8 * 8 / 2 + startLocation; n++)
+		SpriteData[n] = hud0Data[n - startLocation];
+		
+	startLocation = n;
+	for(; n < 8 * 8 / 2 + startLocation; n++)
+		SpriteData[n] = hud1Data[n - startLocation];
+		
+	startLocation = n;
+	for(; n < 8 * 8 / 2 + startLocation; n++)
+		SpriteData[n] = hud2Data[n - startLocation];
+		
+	startLocation = n;
+	for(; n < 8 * 8 / 2 + startLocation; n++)
+		SpriteData[n] = hud3Data[n - startLocation];
+		
+	startLocation = n;
+	for(; n < 8 * 8 / 2 + startLocation; n++)
+		SpriteData[n] = hud4Data[n - startLocation];
+		
+	startLocation = n;
+	for(; n < 8 * 8 / 2 + startLocation; n++)
+		SpriteData[n] = hud5Data[n - startLocation];
+		
+	startLocation = n;
+	for(; n < 8 * 8 / 2 + startLocation; n++)
+		SpriteData[n] = hud6Data[n - startLocation];
+		
+	startLocation = n;
+	for(; n < 8 * 8 / 2 + startLocation; n++)
+		SpriteData[n] = hud7Data[n - startLocation];
+		
+	startLocation = n;
+	for(; n < 8 * 8 / 2 + startLocation; n++)
+		SpriteData[n] = hud8Data[n - startLocation];
+		
+	startLocation = n;
+	for(; n < 8 * 8 / 2 + startLocation; n++)
+		SpriteData[n] = hud9Data[n - startLocation];
+		
+	startLocation = n;
+	for(; n < 8 * 8 / 2 + startLocation; n++)
+		SpriteData[n] = hudPercentData[n - startLocation];
+		
+	startLocation = n;
+	for(; n < 16 * 16 / 2 + startLocation; n++)
+		SpriteData[n] = hudLifeData[n - startLocation];
+		
+	startLocation = n;
+	for(; n < 32 * 32 / 2 + startLocation; n++)
+		SpriteData[n] = continueData[n - startLocation];
+		
 	for(n = 0; n < 128; n++)
 	{
-		sprites[n].y = 160;
-		sprites[n].x = 240;
-		sprites[n].isRemoved = true;
+		RemoveSprite(&sprites[n]);
 	}
 	
 	characterWalkingRightBBox.x = 2;
@@ -127,13 +230,12 @@ void Initialize()
 	characterStandingLeftBBox.y = 0;
 	characterStandingLeftBBox.xsize = 8;
 	characterStandingLeftBBox.ysize = 32;
-	
 
 	characterSpriteIndex = 0;
-	sprites[characterSpriteIndex].y = 0;
+	sprites[characterSpriteIndex].y = 96;
 	sprites[characterSpriteIndex].x = 0;
 	sprites[characterSpriteIndex].mapX = 0;
-	sprites[characterSpriteIndex].mapY = 0;
+	sprites[characterSpriteIndex].mapY = 96;
 	sprites[characterSpriteIndex].size = SIZE_32;
 	sprites[characterSpriteIndex].shape = SQUARE;
 	sprites[characterSpriteIndex].location = SIDEWAYS_SPRITE_LOC;
@@ -143,9 +245,22 @@ void Initialize()
 	sprites[characterSpriteIndex].speed = 1;
 	sprites[characterSpriteIndex].isRemoved = false;
 	sprites[characterSpriteIndex].dir = RIGHT;
-	numberOfSprites++;
+	sprites[characterSpriteIndex].hits = 10;
 	
-	enemySpriteIndex = SpawnEnemy(60,0);
+	enemySpriteIndex = SpawnEnemy(260,96);
+	int loc = GetNextFreePosition(sprites, 128, 0);
+	sprites[loc].y = 140;
+	sprites[loc].x = 4;
+	sprites[loc].size = SIZE_8;
+	sprites[loc].shape = WIDE;
+	sprites[loc].location = HUD_LIFE_SPRITE;
+	sprites[loc].noGravity = true;
+	sprites[loc].isProjectile = false;
+	sprites[loc].isRemoved = false;
+	
+	leftHealthIndex = GetNextFreePosition(sprites, 128, 0);
+	rightHealthIndex = leftHealthIndex + 1;
+	ChangePlayerHealth(sprites[characterSpriteIndex].hits);
 	
 	WaitVBlank();
 	UpdateSpriteMemory(sprites, 128);
@@ -164,22 +279,22 @@ void Initialize()
 	DMAFastCopy((void*)mapPalette, (void*)BGPaletteMem, 256, DMA_16NOW);
 
 	//copy the tile images into the tile memory
-	DMAFastCopy((void*)mapTiles, (void*)CharBaseBlock(0), 192, DMA_32NOW);
+	DMAFastCopy((void*)mapTiles, (void*)CharBaseBlock(0), 1248, DMA_32NOW);
 	
-	DMAFastCopy((void*)hitMapTiles, (void*)CharBaseBlock(2), 240, DMA_32NOW);
+	DMAFastCopy((void*)hitMapTiles, (void*)CharBaseBlock(2), 32, DMA_32NOW);
 	
 	int i, j;
 	for (i = 0; i < 32; i++)
 	{
 		for (j = 0; j < 32; j++)
 		{
-			bg0map[i * 32 + j] = map[i * MAP_COLUMNS + j];
-			bg1map[i * 32 + j] = hitMap[i * MAP_COLUMNS + j];
+			bg0map[i * 32 + j] = map[i * SHIP_MAP_COLUMNS + j];
+			bg1map[i * 32 + j] = hitMap[i * SHIP_MAP_COLUMNS + j];
 		}
 	}
 }
 
-void Update()
+void ShipUpdate()
 {
 	keyPoll();
 	Direction dir;
@@ -229,25 +344,44 @@ void Update()
 		}
 		sprites[characterSpriteIndex].hFlip = false;
 		sprites[characterSpriteIndex].dir = RIGHT;
-		int prevX;
-		if (sprites[characterSpriteIndex].x < 120 || screenRight >= MAP_WIDTH - 1)
-		{	
-			prevX = sprites[characterSpriteIndex].x;
-			sprites[characterSpriteIndex] = Move(sprites[characterSpriteIndex].dir, sprites[characterSpriteIndex]);
-			if (prevX != sprites[characterSpriteIndex].x)
-				walkingCounter++;
+		if (!tookStep)
+		{
+			tookStep = 1;
+			int prevX;
+			if (sprites[characterSpriteIndex].x < 120 || shipScreenRight >= SHIP_MAP_WIDTH - 1)
+			{	
+				if (!HitTest(sprites[characterSpriteIndex], sprites[enemySpriteIndex]))
+				{
+					prevX = sprites[characterSpriteIndex].x;
+					sprites[characterSpriteIndex] = Move(sprites[characterSpriteIndex].dir, sprites[characterSpriteIndex]);
+					if (prevX != sprites[characterSpriteIndex].x)
+						walkingCounter++;
+					
+					//Go back to start screen. Don't have that yet so going to continue screen now
+					if (sprites[characterSpriteIndex].x > 200)
+						InitializeContinueGame();
+				}
+			}
+			else
+			{
+				if (!HitTest(sprites[characterSpriteIndex], sprites[enemySpriteIndex]))
+				{
+					prevX = sprites[characterSpriteIndex].mapX;
+					sprites[characterSpriteIndex].dir = RIGHT;
+					MoveMapRight();
+					if (prevX != sprites[characterSpriteIndex].mapX)
+					{
+						walkingCounter++;
+						projectileMoveCounter = sprites[characterSpriteIndex].mapX - prevX;
+						mapMoved = RIGHT;
+						CounterPlayerMovement(prevX - sprites[characterSpriteIndex].mapX);
+					}
+				}
+			}
 		}
 		else
 		{
-			prevX = sprites[characterSpriteIndex].mapX;
-			sprites[characterSpriteIndex].dir = RIGHT;
-			MoveMapRight();
-			if (prevX != sprites[characterSpriteIndex].mapX)
-			{
-				walkingCounter++;
-				projectileMoveCounter = sprites[characterSpriteIndex].mapX - prevX;
-				mapMoved = RIGHT;
-			}
+			tookStep = 0;
 		}
 	}
 		
@@ -278,25 +412,40 @@ void Update()
 		}	
 		sprites[characterSpriteIndex].hFlip = true;
 		sprites[characterSpriteIndex].dir = LEFT;
-		int prevX;
-		if (sprites[characterSpriteIndex].x > 120 || screenLeft == 0)
+		if (!tookStep)
 		{
-			prevX = sprites[characterSpriteIndex].x;
-			sprites[characterSpriteIndex] = Move(sprites[characterSpriteIndex].dir, sprites[characterSpriteIndex]);
-			if (prevX != sprites[characterSpriteIndex].x)
-				walkingCounter++;
+			tookStep = 1;
+			int prevX;
+			if (sprites[characterSpriteIndex].x > 120 || shipScreenLeft == 0)
+			{
+				if (!HitTest(sprites[characterSpriteIndex], sprites[enemySpriteIndex]))
+				{
+					prevX = sprites[characterSpriteIndex].x;
+					sprites[characterSpriteIndex] = Move(sprites[characterSpriteIndex].dir, sprites[characterSpriteIndex]);
+					if (prevX != sprites[characterSpriteIndex].x)
+						walkingCounter++;
+				}
+			}
+			else
+			{
+				if (!HitTest(sprites[characterSpriteIndex], sprites[enemySpriteIndex]))
+				{
+					prevX = sprites[characterSpriteIndex].mapX;
+					sprites[characterSpriteIndex].dir = LEFT;
+					MoveMapLeft();
+					if (prevX != sprites[characterSpriteIndex].mapX)
+					{
+						walkingCounter++;
+						projectileMoveCounter = prevX - sprites[characterSpriteIndex].mapX;
+						mapMoved = LEFT;
+						CounterPlayerMovement(prevX - sprites[characterSpriteIndex].mapX);
+					}
+				}
+			}
 		}
 		else
 		{
-			prevX = sprites[characterSpriteIndex].mapX;
-			sprites[characterSpriteIndex].dir = LEFT;
-			MoveMapLeft();
-			if (prevX != sprites[characterSpriteIndex].mapX)
-			{
-				walkingCounter++;
-				projectileMoveCounter = prevX - sprites[characterSpriteIndex].mapX;
-				mapMoved = LEFT;
-			}
+			tookStep = 0;
 		}
 	}
 	
@@ -305,12 +454,18 @@ void Update()
 		SpriteHandler character = sprites[characterSpriteIndex];
 		if (character.dir == RIGHT) 
 		{
-			Shoot(character.x + 20, character.y + 7, character.mapX + 20, character.mapY + 7, character.dir);
+			Shoot(character.x + 20, character.y + 7, character.mapX + 20, character.mapY + 7, character.dir, CHAR_LASER_SPRITE_LOC, 0);
 		}
 		else if (character.dir == LEFT)
 		{
-			Shoot(character.x + 2, character.y + 7, character.mapX + 2, character.mapY + 7, character.dir);
+			Shoot(character.x + 2, character.y + 7, character.mapX + 2, character.mapY + 7, character.dir, CHAR_LASER_SPRITE_LOC, 0);
 		}
+	}
+	
+	if (rand() % 50 == 0)
+	{
+		SpriteHandler enemy = sprites[enemySpriteIndex];
+		Shoot(enemy.x, enemy.y + 12, enemy.mapX, enemy.mapY + 12, enemy.dir, ENEMY_LASER_SPRITE_LOC, 1);
 	}
 	
 	int i;
@@ -319,37 +474,18 @@ void Update()
 		if (sprites[i].isProjectile && !sprites[i].isRemoved)
 		{
 			sprites[i] = Move(sprites[i].dir, sprites[i]);
-			if (mapMoved == RIGHT) 
-			{
-				if (sprites[i].dir == RIGHT) 
-				{
-					sprites[i].x -= projectileMoveCounter;
-					sprites[i].mapX -= projectileMoveCounter;
-				}
-				else if (sprites[i].dir == LEFT)
-				{
-					sprites[i].x += projectileMoveCounter;
-					sprites[i].mapX += projectileMoveCounter;
-				}				
-			}
-			else if (mapMoved == LEFT)
-			{
-				if (sprites[i].dir == RIGHT)
-				{
-					sprites[i].x += projectileMoveCounter;
-					sprites[i].mapX += projectileMoveCounter;
-				}
-				else if (sprites[i].dir == LEFT)
-				{
-					sprites[i].x -= projectileMoveCounter;
-					sprites[i].mapX -= projectileMoveCounter;
-				}
-			}
-			
-			if (HitTest(sprites[i], sprites[enemySpriteIndex]))
+			if (!sprites[i].isEnemy && HitTest(sprites[i], sprites[enemySpriteIndex]))
 			{
 				RemoveSprite(&sprites[i]);
 				RemoveSprite(&sprites[enemySpriteIndex]);
+			}
+			else if (sprites[i].isEnemy && HitTest(sprites[i], sprites[characterSpriteIndex]))
+			{
+				RemoveSprite(&sprites[i]);
+				sprites[characterSpriteIndex].hits--;
+				ChangePlayerHealth(sprites[characterSpriteIndex].hits);
+				if (sprites[characterSpriteIndex].hits == 0)
+					InitializeContinueGame();
 			}
 		}		
 	}
@@ -362,24 +498,27 @@ void Update()
 		else if (sprites[characterSpriteIndex].dir == LEFT)
 			sprites[characterSpriteIndex].boundingBox = characterStandingLeftBBox;
 	}
-	
+		
 	WaitVBlank();
 	UpdateSpriteMemory(sprites, 128);
 	REG_BG0VOFS = regY;
 	REG_BG0HOFS = regX;
 	
 	int n;
-	for(n = 0; n < 40000; n++);
+	for(n = 0; n < 30000; n++);
 }
 
 int main(void)
 {			
 
-	Initialize();
+	ShipInitialize();
 	
    while(1)
    {
-        Update();
+		if (!gameOver)
+			ShipUpdate();
+		else
+			GameOverUpdate();
    }
 
    return 0;
@@ -388,13 +527,13 @@ int main(void)
 void Gravity()
 {
 	int i;
-	for (i = 0; i < numberOfSprites; i++)
+	for (i = 0; i < 128; i++)
 	{
-		if (!sprites[i].noGravity)
+		if (!sprites[i].noGravity && !sprites[i].isRemoved)
 		{
 			if (!CanMoveDown(sprites[i]))
 			{
-				if (isJumping)
+				if (isJumping && i == characterSpriteIndex)
 				{	
 					sprites[characterSpriteIndex].location = SIDEWAYS_SPRITE_LOC;
 					if (sprites[characterSpriteIndex].dir == RIGHT)
@@ -419,29 +558,28 @@ int GetNextTile(int x, int y)
 	return bg1map[(y / 8) * 32 + (x / 8)];
 }
 
-void Shoot(int startX, int startY, int mapX, int mapY, Direction dir)
+void Shoot(int startX, int startY, int mapX, int mapY, Direction dir, int spriteLoc, int isEnemy)
 {
-	int location = GetNextFreePosition(sprites, 128);
+	int location = GetNextFreePosition(sprites, 128, 10);
 	BoundingBox laserBBox;
 	laserBBox.x = 0;
-	laserBBox.y = 0;
+	laserBBox.y = 4;
 	laserBBox.xsize = 8;
-	laserBBox.ysize = 8;
+	laserBBox.ysize = 2;
 	sprites[location].y = startY;
 	sprites[location].x = startX;
 	sprites[location].mapX = mapX;
 	sprites[location].mapY = mapY;
 	sprites[location].size = SIZE_8;
 	sprites[location].shape = SQUARE;
-	sprites[location].location = LASER_SPRITE_LOC;
+	sprites[location].location = spriteLoc;
 	sprites[location].boundingBox = laserBBox;
 	sprites[location].noGravity = true;
 	sprites[location].isProjectile = true;
 	sprites[location].speed = 5;
 	sprites[location].isRemoved = false;
 	sprites[location].dir = dir;
-
-	numberOfSprites++;
+	sprites[location].isEnemy = isEnemy;
 }
 
 SpriteHandler Move(Direction direction, SpriteHandler sprite)
@@ -470,10 +608,14 @@ SpriteHandler Move(Direction direction, SpriteHandler sprite)
 		}
 		case RIGHT:
 		{
-			if (sprite.mapX < MAP_WIDTH - 1 && CanMoveRight(sprite))
+			if (sprite.mapX < SHIP_MAP_WIDTH - 1 && CanMoveRight(sprite))
 			{
 				sprite.x += sprite.speed;
 				sprite.mapX += sprite.speed;
+				if (sprite.isProjectile && sprite.x > 240)
+				{
+					RemoveSprite(&sprite);
+				}
 			}
 			else
 			{
@@ -502,148 +644,51 @@ SpriteHandler Move(Direction direction, SpriteHandler sprite)
 
 void MoveMapLeft()
 {
-	//int x = sprites[characterSpriteIndex].mapX;
-	//int y = sprites[characterSpriteIndex].mapY;
-	if (screenLeft > 0 && CanMoveLeft(sprites[characterSpriteIndex]))
+	if (shipScreenLeft > 0 && CanMoveLeft(sprites[characterSpriteIndex]))
 	{
 		regX--;
-		if (mapLeft > 0)
+		if (shipMapLeft > 0)
 		{
-			mapLeft--; mapRight--;
+			shipMapLeft--; shipMapRight--;
 		}
 		
-		prevColumn = screenLeft / 8;
-		screenLeft--; screenRight--;
+		shipPrevColumn = shipScreenLeft / 8;
+		shipScreenLeft--; shipScreenRight--;
 		sprites[characterSpriteIndex].mapX -= sprites[characterSpriteIndex].speed;
-		nextColumn = screenLeft / 8;
-		if (nextColumn < prevColumn)
+		shipNextColumn = shipScreenLeft / 8;
+		if (shipNextColumn < shipPrevColumn)
 		{
-			CopyColumnToBackground(screenLeft, nextColumn, mapTop, mapBottom, map, bg0map, MAP_COLUMNS);
-			CopyColumnToBackground(screenLeft, nextColumn, mapTop, mapBottom, hitMap, bg1map, MAP_COLUMNS);
+			CopyColumnToBackground(shipScreenLeft, shipNextColumn, shipMapTop, shipMapBottom, map, bg0map, SHIP_MAP_COLUMNS);
+			CopyColumnToBackground(shipScreenLeft, shipNextColumn, shipMapTop, shipMapBottom, hitMap, bg1map, SHIP_MAP_COLUMNS);
 		}
 	}
 }
 
 void MoveMapRight()
 {
-	//int x = sprites[characterSpriteIndex].mapX;
-	//int y = sprites[characterSpriteIndex].mapY;
-	if (screenRight < MAP_WIDTH - 1 && CanMoveRight(sprites[characterSpriteIndex]))
+	if (shipScreenRight < SHIP_MAP_WIDTH - 1 && CanMoveRight(sprites[characterSpriteIndex]))
 	{
 		regX++;
-		if (mapRight < MAP_WIDTH - 1)
+		if (shipMapRight < SHIP_MAP_WIDTH - 1)
 		{
-			mapRight++; mapLeft++;
+			shipMapRight++; shipMapLeft++;
 		}
 		
-		prevColumn = screenRight / 8;
-		screenLeft++; screenRight++;
+		shipPrevColumn = shipScreenRight / 8;
+		shipScreenLeft++; shipScreenRight++;
 		sprites[characterSpriteIndex].mapX += sprites[characterSpriteIndex].speed;
-		nextColumn = screenRight / 8;
-		if (nextColumn > prevColumn)
+		shipNextColumn = shipScreenRight / 8;
+		if (shipNextColumn > shipPrevColumn)
 		{
-			CopyColumnToBackground(screenRight, nextColumn, mapTop, mapBottom, map, bg0map, MAP_COLUMNS);
-			CopyColumnToBackground(screenRight, nextColumn, mapTop, mapBottom, hitMap, bg1map, MAP_COLUMNS);
+			CopyColumnToBackground(shipScreenRight, shipNextColumn, shipMapTop, shipMapBottom, map, bg0map, SHIP_MAP_COLUMNS);
+			CopyColumnToBackground(shipScreenRight, shipNextColumn, shipMapTop, shipMapBottom, hitMap, bg1map, SHIP_MAP_COLUMNS);
 		}
-	}
-}
-
-void MoveMap(Direction direction)
-{
-	
-	bool moveLeft = false, moveRight = false, moveUp = false, moveDown = false;
-	switch (direction)
-	{
-		case LEFT:
-		{
-			if (screenLeft > 0)
-			{
-				regX--;
-				if (mapLeft > 0)
-				{
-					mapLeft--; mapRight--;
-				}
-				
-				prevColumn = screenLeft / 8;
-				screenLeft--; screenRight--;
-				nextColumn = screenLeft / 8;
-				if (nextColumn < prevColumn)
-					moveLeft = true;
-			}
-		}
-		case RIGHT:
-		{
-			if (screenRight < MAP_WIDTH - 1)
-			{
-				regX++;
-				if (mapRight < MAP_WIDTH - 1)
-				{
-					mapRight++; mapLeft++;
-				}
-				
-				prevColumn = screenRight / 8;
-				screenLeft++; screenRight++;
-				nextColumn = screenRight / 8;
-				if (nextColumn > prevColumn)
-					moveRight = true;
-			}
-		}
-		case UP:
-		{
-			if (screenTop > 0)
-			{
-				regY--;
-				if (mapTop > 0)
-				{
-					mapTop--;	mapBottom--;
-				}
-				
-				prevRow = screenTop / 8;
-				screenTop--; screenBottom--;
-				nextRow = screenTop / 8;
-				if (nextRow < prevRow)
-					moveUp = true;
-			}
-		}
-		case DOWN:
-		{
-			if (screenBottom < MAP_HEIGHT - 1)
-			{
-				regY++;
-				if (mapBottom < MAP_HEIGHT - 1)
-				{
-					mapTop++; mapBottom++;
-				}
-				
-				prevRow = screenBottom / 8;
-				screenTop++; screenBottom++;
-				nextRow = screenBottom / 8;
-				if (nextRow > prevRow)
-					moveDown = true;
-			}
-		}
-	}
-	if (moveLeft)
-	{
-		CopyColumnToBackground(screenLeft, nextColumn, mapTop, mapBottom, map, bg0map, MAP_COLUMNS);
-	}
-	if (moveRight)
-	{
-		CopyColumnToBackground(screenRight, nextColumn, mapTop, mapBottom, map, bg0map, MAP_COLUMNS);
-	}
-	if (moveUp)
-	{
-		CopyRowToBackground(screenTop, nextRow, mapLeft, mapRight, map, bg0map, MAP_COLUMNS);
-	}
-	if (moveDown)
-	{
-		CopyRowToBackground(screenBottom, nextRow, mapLeft, mapRight, map, bg0map, MAP_COLUMNS);
 	}
 }
 
 int CanMove(int x, int y)
 {
-	return GetNextTile(x,y) != 2;
+	return GetNextTile(x,y) != 1;
 }
 
 int CanMoveRight(SpriteHandler sprite)
@@ -754,35 +799,160 @@ void RemoveSprite(SpriteHandler* sprite)
 
 int SpawnEnemy(int mapX, int mapY)
 {
-	int location = GetNextFreePosition(sprites, 128);
-	sprites[location].y = 0;
-	sprites[location].x = 60;
+	int location = GetNextFreePosition(sprites, 128, 0);
+	sprites[location].y = 96;
+	sprites[location].x = mapX > shipScreenRight ? 240 : mapX - shipScreenLeft;
 	sprites[location].mapX = mapX;
 	sprites[location].mapY = mapY;
 	sprites[location].size = SIZE_32;
-	sprites[location].shape = SQUARE;
-	sprites[location].location = SIDEWAYS_SPRITE_LOC;
-	sprites[location].boundingBox = characterStandingRightBBox;
+	sprites[location].shape = TALL;
+	sprites[location].location = ENEMY_SPRITE_LOC;
+	sprites[location].boundingBox = characterWalkingLeftBBox;
 	sprites[location].noGravity = false;
 	sprites[location].isProjectile = false;
 	sprites[location].speed = 1;
 	sprites[location].isRemoved = false;
-	sprites[location].dir = RIGHT;
-	numberOfSprites++;
+	sprites[location].dir = LEFT;
 	
 	return location;
 }
 
 int HitTest(SpriteHandler sprite1, SpriteHandler sprite2)
 {	
-	if (sprite1.x > sprite2.x && sprite1.x < sprite2.x + sprite2.boundingBox.xsize) 
+	if (sprite1.x + sprite1.boundingBox.xsize >= sprite2.x && sprite1.x + sprite1.boundingBox.xsize <= sprite2.x + sprite2.boundingBox.xsize) 
 	{
-		if (sprite1.y > sprite2.y && sprite1.y < sprite2.y + sprite2.boundingBox.ysize)
+		if (sprite1.y >= sprite2.y && sprite1.y <= sprite2.y + sprite2.boundingBox.ysize)
 		{
 			return 1;
 		}
 	}
 	return 0;
+}
+
+void CounterPlayerMovement(int amount)
+{
+	int i;
+	for (i = 0; i < 128; i++)
+	{
+		if (!sprites[i].isRemoved && i != characterSpriteIndex && !sprites[i].isHUD)
+		{
+			if (sprites[i].mapX > shipScreenLeft - sprites[i].boundingBox.xsize && sprites[i].mapX < shipScreenRight)
+				sprites[i].x += amount;
+		}
+	}
+}
+
+void ChangePlayerHealth(int health)
+{
+	int leftNum, rightNum;
+	switch (health)
+	{
+		case 10: leftNum = HUD_1_SPRITE; rightNum = HUD_0_SPRITE; break;
+		case 9: leftNum = HUD_0_SPRITE; rightNum = HUD_9_SPRITE; break;
+		case 8: leftNum = HUD_0_SPRITE; rightNum = HUD_8_SPRITE; break;
+		case 7: leftNum = HUD_0_SPRITE; rightNum = HUD_7_SPRITE; break;
+		case 6: leftNum = HUD_0_SPRITE; rightNum = HUD_6_SPRITE; break;
+		case 5: leftNum = HUD_0_SPRITE; rightNum = HUD_5_SPRITE; break;
+		case 4: leftNum = HUD_0_SPRITE; rightNum = HUD_4_SPRITE; break;
+		case 3: leftNum = HUD_0_SPRITE; rightNum = HUD_3_SPRITE; break;
+		case 2: leftNum = HUD_0_SPRITE; rightNum = HUD_2_SPRITE; break;
+		case 1: leftNum = HUD_0_SPRITE; rightNum = HUD_1_SPRITE; break;
+		case 0: leftNum = HUD_0_SPRITE; rightNum = HUD_0_SPRITE; break;
+	}
+	sprites[leftHealthIndex].y = 148;
+	sprites[leftHealthIndex].x = 4;
+	sprites[leftHealthIndex].size = SIZE_8;
+	sprites[leftHealthIndex].shape = SQUARE;
+	sprites[leftHealthIndex].location = leftNum;
+	sprites[leftHealthIndex].noGravity = true;
+	sprites[leftHealthIndex].isProjectile = false;
+	sprites[leftHealthIndex].isRemoved = false;
+	sprites[leftHealthIndex].isHUD = true;
+	
+	sprites[rightHealthIndex].y = 148;
+	sprites[rightHealthIndex].x = 12;
+	sprites[rightHealthIndex].size = SIZE_8;
+	sprites[rightHealthIndex].shape = SQUARE;
+	sprites[rightHealthIndex].location = rightNum;
+	sprites[rightHealthIndex].noGravity = true;
+	sprites[rightHealthIndex].isProjectile = false;
+	sprites[rightHealthIndex].isRemoved = false;
+	sprites[rightHealthIndex].isHUD = true;
+}
+
+void InitializeContinueGame()
+{
+	gameOver = 1;
+	int location = GetNextFreePosition(sprites, 128, 0);
+	sprites[location].y = 60;
+	sprites[location].x = 112;
+	sprites[location].size = SIZE_32;
+	sprites[location].shape = WIDE;
+	sprites[location].location = CONTINUE_SPRITE;
+	
+	timeLeftIndex = location + 1;
+	sprites[timeLeftIndex].y = 78;
+	sprites[timeLeftIndex].x = 116;
+	sprites[timeLeftIndex].size = SIZE_8;
+	sprites[timeLeftIndex].shape = SQUARE;
+	sprites[timeLeftIndex].location = HUD_1_SPRITE;
+	
+	sprites[timeLeftIndex + 1].y = 78;
+	sprites[timeLeftIndex + 1].x = 122;
+	sprites[timeLeftIndex + 1].size = SIZE_8;
+	sprites[timeLeftIndex + 1].shape = SQUARE;
+	sprites[timeLeftIndex + 1].location = HUD_0_SPRITE;
+	
+	WaitVBlank();
+	UpdateSpriteMemory(sprites, 128);
+}
+
+void GameOverUpdate()
+{
+		keyPoll();
+		if (keyHit(BUTTON_A))
+		{
+			gameOver = 0;
+			ShipInitialize();
+			timeLeft = 10;
+		}
+		else if (timeLeft >= 0)
+		{
+			int leftNum, rightNum;
+			switch (timeLeft)
+			{
+				case 10: leftNum = HUD_1_SPRITE; rightNum = HUD_0_SPRITE; break;
+				case 9: leftNum = HUD_0_SPRITE; rightNum = HUD_9_SPRITE; break;
+				case 8: leftNum = HUD_0_SPRITE; rightNum = HUD_8_SPRITE; break;
+				case 7: leftNum = HUD_0_SPRITE; rightNum = HUD_7_SPRITE; break;
+				case 6: leftNum = HUD_0_SPRITE; rightNum = HUD_6_SPRITE; break;
+				case 5: leftNum = HUD_0_SPRITE; rightNum = HUD_5_SPRITE; break;
+				case 4: leftNum = HUD_0_SPRITE; rightNum = HUD_4_SPRITE; break;
+				case 3: leftNum = HUD_0_SPRITE; rightNum = HUD_3_SPRITE; break;
+				case 2: leftNum = HUD_0_SPRITE; rightNum = HUD_2_SPRITE; break;
+				case 1: leftNum = HUD_0_SPRITE; rightNum = HUD_1_SPRITE; break;
+				case 0: leftNum = HUD_0_SPRITE; rightNum = HUD_0_SPRITE; break;
+			}
+			timeLeft--;
+		
+			sprites[timeLeftIndex].y = 78;
+			sprites[timeLeftIndex].x = 116;
+			sprites[timeLeftIndex].size = SIZE_8;
+			sprites[timeLeftIndex].shape = SQUARE;
+			sprites[timeLeftIndex].location = leftNum;
+			
+			sprites[timeLeftIndex + 1].y = 78;
+			sprites[timeLeftIndex + 1].x = 122;
+			sprites[timeLeftIndex + 1].size = SIZE_8;
+			sprites[timeLeftIndex + 1].shape = SQUARE;
+			sprites[timeLeftIndex + 1].location = rightNum;
+								
+			WaitVBlank();
+			UpdateSpriteMemory(sprites, 128);			
+				
+			int n;
+			for(n = 0; n < 2000000; n++);
+		}
 }
 
 void CopyColumnToBackground(int column, int copyToColumn, int topRow, int bottomRow, const unsigned short* source, unsigned short* dest, int sourceColumns)
